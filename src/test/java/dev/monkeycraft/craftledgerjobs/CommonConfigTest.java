@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CommonConfigTest {
@@ -42,5 +43,29 @@ class CommonConfigTest {
         assertEquals("tokens", config.currencyName());
         assertEquals("M$", config.currencySymbol());
         assertEquals("M$42.50 tokens", config.format(42.5D));
+    }
+
+    @Test
+    void loadRejectsInvalidStartingBalance() throws Exception {
+        Path path = tempDir.resolve("common.toml");
+        Files.writeString(path, """
+                startingBalance = -1
+                currencyName = "coins"
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsBlankCurrencyName() throws Exception {
+        Path path = tempDir.resolve("common.toml");
+        Files.writeString(path, """
+                startingBalance = 1
+                currencyName = ""
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
     }
 }

@@ -5,8 +5,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public final class JobsConfig {
+    private static final Pattern SIMPLE_ID = Pattern.compile("[a-z0-9_-]+");
+    private static final Pattern RESOURCE_ID = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
+
     public Map<String, JobDefinition> jobs = new LinkedHashMap<>();
 
     public static JobsConfig load(Path path) throws IOException {
@@ -24,7 +28,30 @@ public final class JobsConfig {
             jobs = new LinkedHashMap<>();
         }
         jobs.values().forEach(JobDefinition::normalize);
+        validate();
         return this;
+    }
+
+    private void validate() {
+        jobs.forEach((jobId, job) -> {
+            if (jobId == null || !SIMPLE_ID.matcher(jobId).matches()) {
+                throw new ConfigValidationException("jobs.json contains invalid job id: " + jobId);
+            }
+            if (job == null) {
+                throw new ConfigValidationException("jobs.json job " + jobId + " must not be null.");
+            }
+            job.blockBreak.forEach((blockId, payout) -> validatePayout("blockBreak", jobId, blockId, payout));
+            job.entityKill.forEach((entityId, payout) -> validatePayout("entityKill", jobId, entityId, payout));
+        });
+    }
+
+    private static void validatePayout(String section, String jobId, String resourceId, double payout) {
+        if (resourceId == null || !RESOURCE_ID.matcher(resourceId).matches()) {
+            throw new ConfigValidationException("jobs.json " + section + " for job " + jobId + " contains invalid id: " + resourceId);
+        }
+        if (!Double.isFinite(payout) || payout <= 0) {
+            throw new ConfigValidationException("jobs.json " + section + " payout for " + resourceId + " in job " + jobId + " must be a finite number greater than 0.");
+        }
     }
 
     private static JobsConfig defaults() {
