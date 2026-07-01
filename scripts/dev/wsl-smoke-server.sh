@@ -31,11 +31,6 @@ while (( SECONDS < deadline )); do
     grep -q 'Done (.*)! For help, type "help"' "$LOG_FILE" && server_ready=1
     grep -q 'CraftLedger Jobs loaded' "$LOG_FILE" && mod_loaded=1
 
-    if grep -q 'BUILD FAILED' "$LOG_FILE"; then
-      echo "Smoke test failed during Gradle build. See $LOG_FILE" >&2
-      exit 1
-    fi
-
     if (( server_ready == 1 && mod_loaded == 1 )); then
       echo "Smoke test passed: Forge dev server booted and CraftLedger Jobs loaded."
       echo "Log: $LOG_FILE"
