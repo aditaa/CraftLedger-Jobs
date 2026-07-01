@@ -21,6 +21,30 @@ CI also validates that the built jar contains server-only metadata:
 - `META-INF/mods.toml` exists.
 - `displayTest="IGNORE_SERVER_VERSION"` is present.
 - The mod id is `craftledger_jobs`.
+- The Forge dependency metadata is marked `side="SERVER"`.
+
+CI is split into these layers:
+
+- Gradle wrapper validation.
+- Unit tests.
+- Repository verification tasks.
+- Server-only source validation, which blocks known client-only Minecraft/Forge imports.
+- Full Gradle build and reobfuscated jar creation.
+- Forge development server smoke test.
+
+Run the same verification task set locally:
+
+```bash
+./gradlew check
+```
+
+Run the CI-style server smoke test on Linux or WSL:
+
+```bash
+bash scripts/ci/smoke-server.sh
+```
+
+The smoke test passes when the Forge development server reaches the Minecraft `Done (...)!` line and logs `CraftLedger Jobs loaded`.
 
 ## Manual Dedicated Server Checklist
 

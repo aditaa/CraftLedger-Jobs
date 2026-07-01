@@ -6,13 +6,19 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "21 9 * * 1"
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build and Validate
+  wrapper-validation:
+    name: Gradle Wrapper Validation
     runs-on: ubuntu-latest
 
     steps:
@@ -21,6 +27,38 @@ jobs:
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v6
+
+  unit-tests:
+    name: Unit Tests and Verification Tasks
+    runs-on: ubuntu-latest
+    needs:
+      - wrapper-validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run unit tests and repository checks
+        run: ./gradlew test validateServerOnlySources validateRepositoryFiles --console=plain --no-daemon
+
+  build:
+    name: Build and Validate
+    runs-on: ubuntu-latest
+    needs:
+      - wrapper-validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -51,4 +89,37 @@ jobs:
           name: craftledger-jobs-snapshot
           path: build/libs/*.jar
           if-no-files-found: error
+          retention-days: 14
+
+  server-smoke:
+    name: Forge Server Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - unit-tests
+      - build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run Forge server smoke test
+        run: bash scripts/ci/smoke-server.sh
+
+      - name: Upload smoke logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: forge-server-smoke-log
+          path: tmp/ci/smoke-server.log
+          if-no-files-found: ignore
           retention-days: 14
