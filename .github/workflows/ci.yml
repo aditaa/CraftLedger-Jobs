@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        run: ./gradlew build --console=plain --no-daemon
+
+      - name: Inspect jar metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-*.jar' ! -name '*-plain.jar' | head -n 1)"
+          test -n "$JAR"
+          unzip -p "$JAR" META-INF/mods.toml > /tmp/craftledger-mods.toml
+          grep -q 'modId="craftledger_jobs"' /tmp/craftledger-mods.toml
+          grep -q 'displayTest="IGNORE_SERVER_VERSION"' /tmp/craftledger-mods.toml
+          grep -q 'side="SERVER"' /tmp/craftledger-mods.toml
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: craftledger-jobs-snapshot
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 14

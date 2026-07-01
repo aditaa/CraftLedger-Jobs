@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security reports
+    url: https://github.com/aditaa/CraftLedger-Jobs/security
+    about: Please avoid posting sensitive exploit details publicly when possible.
