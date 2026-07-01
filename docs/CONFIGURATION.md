@@ -57,3 +57,17 @@ World data is stored in `world/craftledger/`:
 
 Back up these files with the world.
 
+## Validation
+
+`/craftledger reload` validates config before replacing the active settings. If validation fails, the old in-memory config remains active and the command reports the failing setting.
+
+Current validation rules:
+
+- `startingBalance` must be finite and greater than or equal to `0`.
+- `currencyName` and `currencySymbol` must not be blank.
+- Shop item ids must use namespaced ids such as `minecraft:bread`.
+- Shop prices must be finite and greater than `0`.
+- Buy offer `maxStack` must be greater than or equal to `0`; `0` means use the item default.
+- Job ids may contain lowercase letters, numbers, underscores, and hyphens.
+- Job payout ids must be namespaced ids such as `minecraft:coal_ore`.
+- Job payouts must be finite and greater than `0`.

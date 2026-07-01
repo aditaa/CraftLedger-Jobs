@@ -28,14 +28,20 @@ public record CommonConfig(double startingBalance, String currencyName, String c
             String key = parts[0].trim();
             String value = stripQuotes(parts[1].trim());
             if ("startingBalance".equals(key)) {
-                startingBalance = Double.parseDouble(value);
+                try {
+                    startingBalance = Double.parseDouble(value);
+                } catch (NumberFormatException ex) {
+                    throw new ConfigValidationException("common.toml startingBalance must be a number: " + value);
+                }
             } else if ("currencyName".equals(key)) {
                 currencyName = value;
             } else if ("currencySymbol".equals(key)) {
                 currencySymbol = value;
             }
         }
-        return new CommonConfig(startingBalance, currencyName, currencySymbol);
+        CommonConfig config = new CommonConfig(startingBalance, currencyName, currencySymbol);
+        config.validate();
+        return config;
     }
 
     public String format(double amount) {
@@ -47,5 +53,17 @@ public record CommonConfig(double startingBalance, String currencyName, String c
             return value.substring(1, value.length() - 1);
         }
         return value;
+    }
+
+    private void validate() {
+        if (!Double.isFinite(startingBalance) || startingBalance < 0) {
+            throw new ConfigValidationException("common.toml startingBalance must be a finite number greater than or equal to 0.");
+        }
+        if (currencyName == null || currencyName.isBlank()) {
+            throw new ConfigValidationException("common.toml currencyName must not be blank.");
+        }
+        if (currencySymbol == null || currencySymbol.isBlank()) {
+            throw new ConfigValidationException("common.toml currencySymbol must not be blank.");
+        }
     }
 }

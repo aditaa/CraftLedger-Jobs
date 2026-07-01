@@ -48,9 +48,12 @@ public final class Ledger {
         ensureStarted();
         try {
             Path configDir = FMLPaths.CONFIGDIR.get().resolve("craftledger");
-            commonConfig = CommonConfig.load(configDir.resolve("common.toml"));
-            shopConfig = ShopConfig.load(configDir.resolve("shop.json"));
-            jobsConfig = JobsConfig.load(configDir.resolve("jobs.json"));
+            CommonConfig reloadedCommon = CommonConfig.load(configDir.resolve("common.toml"));
+            ShopConfig reloadedShop = ShopConfig.load(configDir.resolve("shop.json"));
+            JobsConfig reloadedJobs = JobsConfig.load(configDir.resolve("jobs.json"));
+            commonConfig = reloadedCommon;
+            shopConfig = reloadedShop;
+            jobsConfig = reloadedJobs;
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to reload CraftLedger Jobs", ex);
         }

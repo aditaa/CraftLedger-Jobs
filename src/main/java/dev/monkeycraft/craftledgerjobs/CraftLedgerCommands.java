@@ -166,9 +166,15 @@ public final class CraftLedgerCommands {
     }
 
     private static int reload(CommandSourceStack source, Ledger ledger) {
-        ledger.reload();
-        source.sendSuccess(() -> TextUtil.success("CraftLedger Jobs reloaded."), true);
-        return 1;
+        try {
+            ledger.reload();
+            source.sendSuccess(() -> TextUtil.success("CraftLedger Jobs reloaded."), true);
+            return 1;
+        } catch (RuntimeException ex) {
+            source.sendFailure(TextUtil.error("CraftLedger reload failed: " + rootMessage(ex)));
+            CraftLedgerJobs.LOGGER.warn("CraftLedger reload failed", ex);
+            return 0;
+        }
     }
 
     private static int adminBalance(CommandSourceStack source, ServerPlayer player, double amount, String mode, Ledger ledger) {
@@ -182,5 +188,13 @@ public final class CraftLedgerCommands {
         ledger.transactions().write("admin_balance_" + mode, player.getGameProfile().getName(), player.getUUID().toString(), amount, source.getTextName());
         source.sendSuccess(() -> TextUtil.success("Balance updated for " + player.getGameProfile().getName() + ": " + ledger.common().format(ledger.players().balance(player))), true);
         return 1;
+    }
+
+    private static String rootMessage(Throwable throwable) {
+        Throwable cursor = throwable;
+        while (cursor.getCause() != null) {
+            cursor = cursor.getCause();
+        }
+        return cursor.getMessage() == null ? cursor.getClass().getSimpleName() : cursor.getMessage();
     }
 }

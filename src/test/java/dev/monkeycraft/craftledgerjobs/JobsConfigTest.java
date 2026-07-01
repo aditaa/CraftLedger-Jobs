@@ -8,6 +8,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JobsConfigTest {
@@ -48,5 +49,43 @@ class JobsConfigTest {
         assertNotNull(custom.entityKill);
         assertTrue(custom.blockBreak.isEmpty());
         assertTrue(custom.entityKill.isEmpty());
+    }
+
+    @Test
+    void loadRejectsInvalidJobId() throws Exception {
+        Path path = tempDir.resolve("jobs.json");
+        Files.writeString(path, """
+                {
+                  "jobs": {
+                    "Bad Job": {
+                      "displayName": "Bad",
+                      "blockBreak": {},
+                      "entityKill": {}
+                    }
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsInvalidPayout() throws Exception {
+        Path path = tempDir.resolve("jobs.json");
+        Files.writeString(path, """
+                {
+                  "jobs": {
+                    "miner": {
+                      "displayName": "Miner",
+                      "blockBreak": {
+                        "minecraft:coal_ore": -1.0
+                      },
+                      "entityKill": {}
+                    }
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
     }
 }

@@ -8,6 +8,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ShopConfigTest {
@@ -37,5 +38,36 @@ class ShopConfigTest {
         assertNotNull(config.buyPrices);
         assertTrue(config.sellPrices.isEmpty());
         assertTrue(config.buyPrices.isEmpty());
+    }
+
+    @Test
+    void loadRejectsInvalidItemId() throws Exception {
+        Path path = tempDir.resolve("shop.json");
+        Files.writeString(path, """
+                {
+                  "sellPrices": {
+                    "not-an-item": 1.0
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> ShopConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsNonPositivePrices() throws Exception {
+        Path path = tempDir.resolve("shop.json");
+        Files.writeString(path, """
+                {
+                  "buyPrices": {
+                    "minecraft:bread": {
+                      "price": 0.0,
+                      "maxStack": 16
+                    }
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> ShopConfig.load(path));
     }
 }
