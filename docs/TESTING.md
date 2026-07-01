@@ -10,6 +10,12 @@ Run:
 ./gradlew build
 ```
 
+Run only unit tests:
+
+```bash
+./gradlew test
+```
+
 CI also validates that the built jar contains server-only metadata:
 
 - `META-INF/mods.toml` exists.
@@ -36,4 +42,3 @@ Use a Forge 1.20.1 dedicated server with Forge 47.4.10.
 ## Pre-Release Standard
 
 Do not publish a release jar until the automated checks pass and the manual dedicated-server checklist has been completed on a staging server.
-
