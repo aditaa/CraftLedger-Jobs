@@ -7,6 +7,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.level.BlockEvent;
 
+import java.util.Locale;
 import java.util.Map;
 
 public final class JobsService {
@@ -17,7 +18,7 @@ public final class JobsService {
     }
 
     public boolean join(ServerPlayer player, String jobId) {
-        String normalized = jobId.toLowerCase();
+        String normalized = jobId.toLowerCase(Locale.ROOT);
         if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
             return false;
         }
@@ -33,6 +34,9 @@ public final class JobsService {
     }
 
     public String listJobs() {
+        if (ledger.jobsConfig().jobs.isEmpty()) {
+            return "No jobs configured.";
+        }
         StringBuilder builder = new StringBuilder("Jobs:");
         for (Map.Entry<String, JobsConfig.JobDefinition> entry : ledger.jobsConfig().jobs.entrySet()) {
             builder.append("\n").append(entry.getKey()).append(" - ").append(entry.getValue().displayName);
@@ -41,9 +45,12 @@ public final class JobsService {
     }
 
     public String info(String jobId) {
-        JobsConfig.JobDefinition job = ledger.jobsConfig().jobs.get(jobId.toLowerCase());
+        JobsConfig.JobDefinition job = ledger.jobsConfig().jobs.get(jobId.toLowerCase(Locale.ROOT));
         if (job == null) {
             return "Unknown job: " + jobId;
+        }
+        if (job.blockBreak.isEmpty() && job.entityKill.isEmpty()) {
+            return job.displayName + " has no payouts configured.";
         }
         StringBuilder builder = new StringBuilder(job.displayName).append(" payouts:");
         job.blockBreak.forEach((id, amount) -> builder.append("\nBreak ").append(id).append(": ").append(ledger.common().format(amount)));
