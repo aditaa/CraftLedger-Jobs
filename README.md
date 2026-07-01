@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/assets/logo.png" alt="CraftLedger Jobs logo" width="160">
+</p>
+
 # CraftLedger Jobs
 
 [![CI](https://github.com/aditaa/CraftLedger-Jobs/actions/workflows/ci.yml/badge.svg)](https://github.com/aditaa/CraftLedger-Jobs/actions/workflows/ci.yml)
@@ -21,6 +25,8 @@ The current focus is making the repository trustworthy before public distributio
 - clear contribution and security docs
 - dedicated-server test checklists
 - conservative economy behavior with transaction logs
+
+The repository social preview asset is available at `.github/assets/social-preview.png`.
 
 ## Target
 
