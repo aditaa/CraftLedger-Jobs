@@ -28,3 +28,6 @@ Use a private channel if available on GitHub, or open a GitHub issue with sensit
 - Do not include real player data in reports.
 - Do not publish working abuse steps before maintainers have had time to fix the issue.
 
+## Automated Security Checks
+
+Pull requests run dependency review and CodeQL Java analysis. These checks are meant to catch vulnerable dependency changes and common code-level security issues before merge, but they do not replace manual review for economy logic, permission boundaries, or server-only compatibility.

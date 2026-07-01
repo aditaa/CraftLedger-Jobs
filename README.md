@@ -22,6 +22,7 @@ The current focus is making the repository trustworthy before public distributio
 - repeatable Gradle builds
 - CI pass/fail/status reporting
 - unit, repository, server-only source, jar metadata, and Forge server smoke checks
+- dependency review and CodeQL security scanning
 - server-only metadata validation
 - clear contribution and security docs
 - dedicated-server test checklists

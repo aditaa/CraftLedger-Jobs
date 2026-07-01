@@ -31,6 +31,8 @@ CI is split into these layers:
 - Server-only source validation, which blocks known client-only Minecraft/Forge imports.
 - Full Gradle build and reobfuscated jar creation.
 - Forge development server smoke test.
+- Dependency review for PR dependency changes.
+- CodeQL static analysis for Java.
 
 Run the same verification task set locally:
 
