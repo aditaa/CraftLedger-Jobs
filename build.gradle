@@ -242,6 +242,58 @@ tasks.register('validateJarMetadata') {
     }
 }
 
+tasks.register('validateServerOnlySources') {
+    group = 'verification'
+    description = 'Fails when main sources reference known client-only Minecraft or Forge APIs.'
+
+    doLast {
+        def forbiddenPatterns = [
+                'net.minecraft.client',
+                'net.minecraftforge.client',
+                'OnlyIn',
+                'Dist.CLIENT'
+        ]
+        def violations = []
+
+        sourceSets.main.allJava.files.each { sourceFile ->
+            def text = sourceFile.getText('UTF-8')
+            forbiddenPatterns.each { pattern ->
+                if (text.contains(pattern)) {
+                    violations << "${project.relativePath(sourceFile)} references ${pattern}"
+                }
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new GradleException("Server-only source validation failed:\n - ${violations.join('\n - ')}")
+        }
+    }
+}
+
+tasks.register('validateRepositoryFiles') {
+    group = 'verification'
+    description = 'Validates repository files expected for a trustworthy open-source project.'
+
+    doLast {
+        [
+                'README.md',
+                'LICENSE',
+                'AGENTS.md',
+                'CONTRIBUTING.md',
+                'SECURITY.md',
+                'CODE_OF_CONDUCT.md',
+                'docs/TESTING.md',
+                '.github/workflows/ci.yml'
+        ].each { path ->
+            if (!file(path).isFile()) {
+                throw new GradleException("Required repository file is missing: ${path}")
+            }
+        }
+    }
+}
+
 tasks.named('check') {
     dependsOn tasks.named('validateJarMetadata')
+    dependsOn tasks.named('validateServerOnlySources')
+    dependsOn tasks.named('validateRepositoryFiles')
 }
