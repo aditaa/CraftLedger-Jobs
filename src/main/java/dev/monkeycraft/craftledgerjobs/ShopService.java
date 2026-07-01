@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.Locale;
 import java.util.Map;
 
 public final class ShopService {
@@ -57,11 +58,12 @@ public final class ShopService {
     }
 
     public BuyResult buy(ServerPlayer player, String itemId, int amount) {
-        ShopConfig.BuyOffer offer = ledger.shopConfig().buyPrices.get(itemId);
+        String normalizedItemId = itemId.toLowerCase(Locale.ROOT);
+        ShopConfig.BuyOffer offer = ledger.shopConfig().buyPrices.get(normalizedItemId);
         if (offer == null || offer.price <= 0) {
             return BuyResult.notForSale();
         }
-        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        ResourceLocation id = ResourceLocation.tryParse(normalizedItemId);
         if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
             return BuyResult.invalidItem();
         }
@@ -88,6 +90,9 @@ public final class ShopService {
     }
 
     public String list(CommonConfig common) {
+        if (ledger.shopConfig().buyPrices.isEmpty()) {
+            return "No shop items configured.";
+        }
         StringBuilder builder = new StringBuilder("Shop items:");
         for (Map.Entry<String, ShopConfig.BuyOffer> entry : ledger.shopConfig().buyPrices.entrySet()) {
             builder.append("\n").append(entry.getKey()).append(" - ").append(common.format(entry.getValue().price));

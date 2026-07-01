@@ -4,10 +4,15 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.server.level.ServerPlayer;
+
+import java.util.concurrent.CompletableFuture;
 
 public final class CraftLedgerCommands {
     private CraftLedgerCommands() {
@@ -41,6 +46,7 @@ public final class CraftLedgerCommands {
                         .executes(ctx -> shopList(ctx.getSource().getPlayerOrException(), ledger)))
                 .then(Commands.literal("buy")
                         .then(Commands.argument("item", StringArgumentType.word())
+                                .suggests((ctx, builder) -> suggestShopItems(ledger, builder))
                                 .executes(ctx -> shopBuy(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), 1, ledger))
                                 .then(Commands.argument("amount", IntegerArgumentType.integer(1, 2304))
                                         .executes(ctx -> shopBuy(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), IntegerArgumentType.getInteger(ctx, "amount"), ledger))))));
@@ -53,12 +59,14 @@ public final class CraftLedgerCommands {
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
                 .then(Commands.literal("join")
                         .then(Commands.argument("job", StringArgumentType.word())
+                                .suggests((ctx, builder) -> suggestJobs(ledger, builder))
                                 .executes(ctx -> jobJoin(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), ledger))))
                 .then(Commands.literal("leave")
                         .executes(ctx -> jobLeave(ctx.getSource().getPlayerOrException(), ledger)))
                 .then(Commands.literal("info")
                         .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), ledger.players().job(ctx.getSource().getPlayerOrException()), ledger))
                         .then(Commands.argument("job", StringArgumentType.word())
+                                .suggests((ctx, builder) -> suggestJobs(ledger, builder))
                                 .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), ledger)))));
 
         dispatcher.register(Commands.literal("craftledger")
@@ -188,6 +196,14 @@ public final class CraftLedgerCommands {
         ledger.transactions().write("admin_balance_" + mode, player.getGameProfile().getName(), player.getUUID().toString(), amount, source.getTextName());
         source.sendSuccess(() -> TextUtil.success("Balance updated for " + player.getGameProfile().getName() + ": " + ledger.common().format(ledger.players().balance(player))), true);
         return 1;
+    }
+
+    private static CompletableFuture<Suggestions> suggestShopItems(Ledger ledger, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(ledger.shopConfig().buyPrices.keySet(), builder);
+    }
+
+    private static CompletableFuture<Suggestions> suggestJobs(Ledger ledger, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(ledger.jobsConfig().jobs.keySet(), builder);
     }
 
     private static String rootMessage(Throwable throwable) {
