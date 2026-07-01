@@ -23,6 +23,7 @@ CraftLedger Jobs is not ready for a first public jar release yet. Use this check
 - README is current.
 - Commands are documented.
 - Config examples are documented.
+- Repository social preview is set from `.github/assets/social-preview.png`.
 - Changelog entry is written.
 - Known limitations are documented.
 
@@ -32,4 +33,3 @@ CraftLedger Jobs is not ready for a first public jar release yet. Use this check
 - GitHub release notes are written.
 - Release jar is attached to GitHub release.
 - CurseForge description and project metadata are ready.
-
