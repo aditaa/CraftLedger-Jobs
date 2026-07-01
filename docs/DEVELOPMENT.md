@@ -32,7 +32,15 @@ scripts/dev/wsl-run-server.sh
 ```
 
 The development server uses the repo `run/` directory, which is ignored by Git.
-The first `runServer` may download a large Minecraft asset set. If it fails with a transient `Connection reset` while downloading assets, rerun the command.
+The first `runServer` may download a large Minecraft asset set. The helper retries `downloadAssets` up to five times because Mojang asset downloads can occasionally fail with transient `Connection reset` errors. Override this with `CRAFTLEDGER_ASSET_RETRIES=10 scripts/dev/wsl-run-server.sh` if needed.
+
+Run a bounded smoke test:
+
+```bash
+scripts/dev/wsl-smoke-server.sh
+```
+
+The smoke test passes when the Forge development server reaches the Minecraft `Done (...)!` line and logs `CraftLedger Jobs loaded`. It writes a temporary log to `tmp/dev/wsl-smoke-server.log`.
 
 ## Windows Build
 
