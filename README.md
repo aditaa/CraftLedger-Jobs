@@ -113,6 +113,8 @@ Windows:
 
 The built jar is created under `build/libs/`.
 
+For local WSL/Windows setup details, see [Development Environment](docs/DEVELOPMENT.md).
+
 ## Testing
 
 Automated checks:
