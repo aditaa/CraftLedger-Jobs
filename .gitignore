@@ -32,6 +32,7 @@ run/
 run-data/
 logs/
 mcmodsrepo/
+tmp/
 
 # IDEs
 .idea/
