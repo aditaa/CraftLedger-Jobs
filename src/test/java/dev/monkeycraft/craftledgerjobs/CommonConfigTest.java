@@ -68,4 +68,28 @@ class CommonConfigTest {
 
         assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
     }
+
+    @Test
+    void loadRejectsNonNumericStartingBalance() throws Exception {
+        Path path = tempDir.resolve("common.toml");
+        Files.writeString(path, """
+                startingBalance = many
+                currencyName = "coins"
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsBlankCurrencySymbol() throws Exception {
+        Path path = tempDir.resolve("common.toml");
+        Files.writeString(path, """
+                startingBalance = 1
+                currencyName = "coins"
+                currencySymbol = ""
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+    }
 }

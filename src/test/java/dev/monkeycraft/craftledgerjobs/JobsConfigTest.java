@@ -97,6 +97,26 @@ class JobsConfigTest {
     }
 
     @Test
+    void loadRejectsInvalidPayoutResourceId() throws Exception {
+        Path path = tempDir.resolve("jobs.json");
+        Files.writeString(path, """
+                {
+                  "jobs": {
+                    "miner": {
+                      "displayName": "Miner",
+                      "blockBreak": {
+                        "coal_ore": 1.0
+                      },
+                      "entityKill": {}
+                    }
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+    }
+
+    @Test
     void loadParsesGlobalJobOptionsAndDescription() throws Exception {
         Path path = tempDir.resolve("jobs.json");
         Files.writeString(path, """

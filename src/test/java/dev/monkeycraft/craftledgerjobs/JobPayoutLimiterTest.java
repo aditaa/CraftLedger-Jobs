@@ -70,6 +70,20 @@ class JobPayoutLimiterTest {
         assertTrue(second.allow(player, "b", 2.0D, config));
     }
 
+    @Test
+    void dailyLimitsResetOnNextUtcDay() throws Exception {
+        UUID player = UUID.randomUUID();
+        JobsConfig config = new JobsConfig();
+        config.dailyPayoutLimit = 5.0D;
+        Path path = tempDir.resolve("job_payouts.json");
+
+        JobPayoutLimiter first = new JobPayoutLimiter(fixedClock("2026-07-01T23:59:00Z"), JobPayoutStore.load(path));
+        assertTrue(first.allow(player, "a", 5.0D, config));
+
+        JobPayoutLimiter second = new JobPayoutLimiter(fixedClock("2026-07-02T00:01:00Z"), JobPayoutStore.load(path));
+        assertTrue(second.allow(player, "a", 5.0D, config));
+    }
+
     private static Clock fixedClock(String instant) {
         return Clock.fixed(Instant.parse(instant), ZoneOffset.UTC);
     }

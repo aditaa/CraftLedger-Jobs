@@ -104,6 +104,7 @@ World data is stored in `world/craftledger/`:
 Player data is saved by UUID with last known player name. Writes go through a temporary file and atomic replace when the filesystem supports it.
 
 See [Configuration](docs/CONFIGURATION.md) for examples.
+See [Installation and Administration](docs/INSTALLATION.md) for server setup and backup notes.
 
 Current permission gates use operator level 2 as the fallback:
 
@@ -162,6 +163,8 @@ Start with:
 - [Contributing Guide](CONTRIBUTING.md)
 - [Agent/Maintainer Guidance](AGENTS.md)
 - [Roadmap](ROADMAP.md)
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md)
+- [Wiki Source](docs/WIKI.md)
 - [Security Policy](SECURITY.md)
 
 Please keep the server-only promise central to changes. Features that require client-side install are out of scope for the current project goal.
