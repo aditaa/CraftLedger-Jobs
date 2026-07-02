@@ -6,6 +6,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -92,14 +94,23 @@ public final class ShopService {
     }
 
     public String list(CommonConfig common) {
-        if (ledger.shopConfig().buyPrices.isEmpty()) {
-            return "No shop items configured.";
-        }
-        StringBuilder builder = new StringBuilder("Shop items:");
+        return listBuy(common, 1);
+    }
+
+    public String listBuy(CommonConfig common, int page) {
+        List<String> rows = new ArrayList<>();
         for (Map.Entry<String, ShopConfig.BuyOffer> entry : ledger.shopConfig().buyPrices.entrySet()) {
-            builder.append("\n").append(entry.getKey()).append(" - ").append(common.format(entry.getValue().price));
+            rows.add(entry.getKey() + " - buy " + common.format(entry.getValue().price));
         }
-        return builder.toString();
+        return PagedText.format("Shop buy items", rows, page, 8);
+    }
+
+    public String listSell(CommonConfig common, int page) {
+        List<String> rows = new ArrayList<>();
+        for (Map.Entry<String, Double> entry : ledger.shopConfig().sellPrices.entrySet()) {
+            rows.add(entry.getKey() + " - sell " + common.format(entry.getValue()));
+        }
+        return PagedText.format("Shop sell items", rows, page, 8);
     }
 
     private static String itemId(Item item) {

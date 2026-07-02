@@ -60,10 +60,11 @@ Use a Forge 1.20.1 dedicated server with Forge 47.4.10.
 6. Run `/balance`.
 7. Run `/pay <player> <amount>` with two players.
 8. Run `/sell hand` with a configured sellable item.
-9. Run `/shop list` and `/shop buy minecraft:bread 1`.
+9. Run `/shop list`, `/shop sell`, and `/shop buy minecraft:bread 1`.
 10. Run `/job join miner`, break a configured ore, and confirm payout.
 11. Run `/craftledger reload` as an operator.
-12. Stop and restart the server, then confirm balances persisted.
+12. Run `/craftledger balance get <player>` as an operator.
+13. Stop and restart the server, then confirm balances persisted.
 
 ## Pre-Release Standard
 
