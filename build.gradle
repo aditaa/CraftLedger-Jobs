@@ -147,6 +147,8 @@ if (!minecraftTarget.isEmpty()) {
     sourceSets.main.resources { srcDir "${targetSourceRoot}/resources" }
 }
 
+jarJar.enable()
+
 repositories {
     // Put repositories for dependencies here
     // ForgeGradle automatically adds the Forge maven and Maven Central for you
@@ -166,6 +168,7 @@ dependencies {
     // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
     minecraft "net.minecraftforge:forge:${effectiveMinecraftVersion}-${effectiveForgeVersion}"
     implementation 'org.xerial:sqlite-jdbc:3.46.1.0'
+    jarJar(group: 'org.xerial', name: 'sqlite-jdbc', version: '[3.46.1.0,3.47.0.0)')
     testImplementation platform('org.junit:junit-bom:5.10.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 

@@ -58,6 +58,11 @@ public final class CraftLedgerJobs {
     }
 
     @SubscribeEvent
+    public void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        ledger.jobs().handleBlockPlace(event);
+    }
+
+    @SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
         ledger.jobs().handleLivingDeath(event);
     }

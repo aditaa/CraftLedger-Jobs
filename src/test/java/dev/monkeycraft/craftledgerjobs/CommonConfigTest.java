@@ -22,10 +22,13 @@ class CommonConfigTest {
         CommonConfig config = CommonConfig.load(path);
 
         assertTrue(Files.exists(path));
+        assertEquals(1, config.configVersion());
         assertTrue(config.currencyEnabled());
         assertEquals(100.0D, config.startingBalance());
         assertEquals("coins", config.currencyName());
         assertEquals("$", config.currencySymbol());
+        assertEquals("json", config.storageBackend());
+        assertEquals("craftledger.sqlite", config.sqliteFile());
         assertEquals("$1,234.50 coins", config.format(1234.5D));
     }
 
@@ -38,6 +41,8 @@ class CommonConfigTest {
                 startingBalance = 42.5 # inline comment
                 currencyName = "tokens"
                 currencySymbol = "M$"
+                storageBackend = "sqlite"
+                sqliteFile = "ledger.sqlite"
                 """);
 
         CommonConfig config = CommonConfig.load(path);
@@ -46,6 +51,8 @@ class CommonConfigTest {
         assertEquals(42.5D, config.startingBalance());
         assertEquals("tokens", config.currencyName());
         assertEquals("M$", config.currencySymbol());
+        assertEquals("sqlite", config.storageBackend());
+        assertEquals("ledger.sqlite", config.sqliteFile());
         assertEquals("M$42.50 tokens", config.format(42.5D));
     }
 
@@ -102,6 +109,33 @@ class CommonConfigTest {
         Path path = tempDir.resolve("common.toml");
         Files.writeString(path, """
                 currencyEnabled = maybe
+                startingBalance = 1
+                currencyName = "coins"
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsInvalidStorageBackend() throws Exception {
+        Path path = tempDir.resolve("common.toml");
+        Files.writeString(path, """
+                storageBackend = "mysql"
+                startingBalance = 1
+                currencyName = "coins"
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsSqlitePathTraversal() throws Exception {
+        Path path = tempDir.resolve("common.toml");
+        Files.writeString(path, """
+                storageBackend = "sqlite"
+                sqliteFile = "../ledger.sqlite"
                 startingBalance = 1
                 currencyName = "coins"
                 currencySymbol = "$"

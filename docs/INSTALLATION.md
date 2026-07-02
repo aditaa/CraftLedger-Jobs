@@ -35,15 +35,20 @@ World data lives in `world/craftledger/`:
 
 - `players.json`
 - `job_payouts.json`
+- `placed_blocks.json`
 - `transactions.log`
 
-Back up the world data files with the world. They contain balances, job selections, daily payout totals, and the transaction audit trail.
+Back up the world data files with the world. They contain balances, job selections, placed-block anti-abuse tracking, daily payout totals, and the transaction audit trail.
+
+If `storageBackend = "sqlite"` is enabled in `common.toml`, balances, jobs, daily payout totals, and transactions move to `world/craftledger/craftledger.sqlite`. `placed_blocks.json` remains a separate anti-abuse tracking file.
 
 ## Reloading
 
 Use `/craftledger reload` after editing config files. Reload validates config before replacing the active settings. If validation fails, the previous active settings remain in memory.
 
 Set `currencyEnabled = false` in `common.toml` to turn off virtual currency features. Set `enabled = false` in `jobs.json` to turn off jobs.
+
+Changing `storageBackend` or `sqliteFile` requires a full server restart. `/craftledger reload` rejects storage backend changes so the server does not silently keep using the old open data store.
 
 ## Permissions
 

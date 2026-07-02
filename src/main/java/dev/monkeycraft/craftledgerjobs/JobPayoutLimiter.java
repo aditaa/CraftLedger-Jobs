@@ -9,14 +9,14 @@ import java.util.UUID;
 
 public final class JobPayoutLimiter {
     private final Clock clock;
-    private final JobPayoutStore payoutStore;
+    private final JobPayoutDataStore payoutStore;
     private final Map<String, Instant> lastPayouts = new HashMap<>();
 
-    public JobPayoutLimiter(JobPayoutStore payoutStore) {
+    public JobPayoutLimiter(JobPayoutDataStore payoutStore) {
         this(Clock.systemUTC(), payoutStore);
     }
 
-    JobPayoutLimiter(Clock clock, JobPayoutStore payoutStore) {
+    JobPayoutLimiter(Clock clock, JobPayoutDataStore payoutStore) {
         this.clock = clock;
         this.payoutStore = payoutStore;
     }

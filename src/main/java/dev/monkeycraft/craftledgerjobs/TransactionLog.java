@@ -11,7 +11,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.List;
 
-public final class TransactionLog {
+public final class TransactionLog implements TransactionStore {
     private static final int MAX_TAIL_LINES = 50;
     private static final int TAIL_CHUNK_SIZE = 8192;
     private final Path path;
@@ -24,10 +24,12 @@ public final class TransactionLog {
         }
     }
 
+    @Override
     public void write(String type, ServerPlayer player, double amount, String detail) {
         write(type, player.getGameProfile().getName(), player.getUUID().toString(), amount, detail);
     }
 
+    @Override
     public void write(String type, String playerName, String playerUuid, double amount, String detail) {
         String line = "%s\t%s\t%s\t%s\t%.2f\t%s%n".formatted(
                 Instant.now(), clean(type), clean(playerName), clean(playerUuid), cleanAmount(amount), clean(detail)
@@ -39,6 +41,7 @@ public final class TransactionLog {
         }
     }
 
+    @Override
     public List<String> tail(int requestedLines) {
         int lines = Math.max(1, Math.min(MAX_TAIL_LINES, requestedLines));
         try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
@@ -63,6 +66,24 @@ public final class TransactionLog {
             }
             List<String> allLines = text.lines().toList();
             return allLines.subList(Math.max(0, allLines.size() - lines), allLines.size());
+        } catch (IOException ex) {
+            CraftLedgerJobs.LOGGER.error("Failed to read CraftLedger transaction log", ex);
+            return List.of();
+        }
+    }
+
+    @Override
+    public List<String> tail(String playerNameOrUuid, int requestedLines) {
+        String filter = playerNameOrUuid == null ? "" : playerNameOrUuid.trim();
+        if (filter.isEmpty()) {
+            return tail(requestedLines);
+        }
+        int lines = Math.max(1, Math.min(MAX_TAIL_LINES, requestedLines));
+        try {
+            List<String> matches = Files.readAllLines(path, StandardCharsets.UTF_8).stream()
+                    .filter(line -> transactionMatches(line, filter))
+                    .toList();
+            return matches.subList(Math.max(0, matches.size() - lines), matches.size());
         } catch (IOException ex) {
             CraftLedgerJobs.LOGGER.error("Failed to read CraftLedger transaction log", ex);
             return List.of();
@@ -105,5 +126,13 @@ public final class TransactionLog {
 
     private static double cleanAmount(double amount) {
         return Double.isFinite(amount) ? amount : 0;
+    }
+
+    private static boolean transactionMatches(String line, String playerNameOrUuid) {
+        String[] parts = line.split("\t", -1);
+        if (parts.length < 4) {
+            return false;
+        }
+        return parts[2].equalsIgnoreCase(playerNameOrUuid) || parts[3].equalsIgnoreCase(playerNameOrUuid);
     }
 }

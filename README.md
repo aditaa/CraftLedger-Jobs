@@ -83,9 +83,13 @@ Operator commands:
 - `/craftledger balance set <player> <amount>`
 - `/craftledger balance add <player> <amount>`
 - `/craftledger balance take <player> <amount>`
+- `/craftledger player info <player>`
+- `/craftledger job set <player> <job>`
+- `/craftledger job clear <player>`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
 - `/craftledger transactions tail [lines]`
+- `/craftledger transactions tail player <player> [lines]`
 
 Offline admin balance commands can target players by last known name or UUID after they have joined the server at least once.
 
@@ -102,9 +106,12 @@ World data is stored in `world/craftledger/`:
 
 - `players.json`
 - `job_payouts.json`
+- `placed_blocks.json`
 - `transactions.log`
 
-Player data is saved by UUID with last known player name. Writes go through a temporary file and atomic replace when the filesystem supports it.
+Player data is saved by UUID with last known player name. JSON writes go through a temporary file and atomic replace when the filesystem supports it.
+
+For larger servers, `common.toml` can set `storageBackend = "sqlite"` to store player balances, jobs, job payout totals, and transactions in `world/craftledger/craftledger.sqlite`. The default remains JSON.
 
 See [Configuration](docs/CONFIGURATION.md) for examples.
 See [Installation and Administration](docs/INSTALLATION.md) for server setup and backup notes.
