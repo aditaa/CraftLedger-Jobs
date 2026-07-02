@@ -10,6 +10,12 @@ Run:
 ./gradlew build
 ```
 
+For a scaffolded Minecraft target profile:
+
+```bash
+./gradlew build -Pcraftledger_mc_target=1.19.2
+```
+
 Run only unit tests:
 
 ```bash
@@ -51,6 +57,8 @@ The smoke test passes when the Forge development server reaches the Minecraft `D
 ## Manual Dedicated Server Checklist
 
 Use a Forge 1.20.1 dedicated server with Forge 47.4.10.
+
+For non-primary target profiles, use the exact Minecraft and Forge versions listed in `docs/MULTIVERSION.md`.
 
 1. Place the built jar in the server `mods/` folder.
 2. Start the server.

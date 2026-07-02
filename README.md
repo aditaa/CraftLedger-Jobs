@@ -22,6 +22,7 @@ CraftLedger Jobs is pre-release. The first jar release is intentionally not publ
 The current focus is making the repository trustworthy before public distribution:
 
 - repeatable Gradle builds
+- scaffolded multi-version Forge target profiles
 - CI pass/fail/status reporting
 - unit, repository, server-only source, jar metadata, and Forge server smoke checks
 - dependency review and CodeQL security scanning
@@ -135,6 +136,24 @@ Windows:
 ```
 
 The built jar is created under `build/libs/`.
+
+Scaffolded Forge target profiles are available for future compatibility work. The default supported build remains Minecraft `1.20.1` / Forge `47.4.10`.
+
+List target profiles:
+
+```bash
+./gradlew listMinecraftTargets
+```
+
+Build a named target profile:
+
+```bash
+./gradlew build -Pcraftledger_mc_target=1.19.2
+```
+
+See [Multi-Version Release Scaffolding](docs/MULTIVERSION.md) before publishing jars for any non-primary target.
+
+Release candidate jars for all scaffolded target profiles are built by the `Release Build` GitHub Actions workflow on `v*` tags or manual dispatch.
 
 For local WSL/Windows setup details, see [Development Environment](docs/DEVELOPMENT.md).
 

@@ -6,6 +6,12 @@ LOG_DIR="$ROOT/tmp/ci"
 LOG_FILE="$LOG_DIR/smoke-server.log"
 TIMEOUT_SECONDS="${CRAFTLEDGER_SMOKE_TIMEOUT_SECONDS:-600}"
 ASSET_RETRIES="${CRAFTLEDGER_ASSET_RETRIES:-5}"
+MC_TARGET="${CRAFTLEDGER_MC_TARGET:-}"
+GRADLE_TARGET_ARGS=()
+
+if [[ -n "$MC_TARGET" ]]; then
+  GRADLE_TARGET_ARGS+=("-Pcraftledger_mc_target=${MC_TARGET}")
+fi
 
 mkdir -p "$LOG_DIR"
 rm -f "$LOG_FILE"
@@ -15,7 +21,7 @@ mkdir -p run
 printf "eula=true\n" > run/eula.txt
 
 for attempt in $(seq 1 "$ASSET_RETRIES"); do
-  if ./gradlew downloadAssets --console=plain --no-daemon; then
+  if ./gradlew downloadAssets "${GRADLE_TARGET_ARGS[@]}" --console=plain --no-daemon; then
     break
   fi
 
@@ -28,7 +34,7 @@ for attempt in $(seq 1 "$ASSET_RETRIES"); do
   sleep 5
 done
 
-setsid bash -lc "./gradlew runServer --console=plain --no-daemon" >"$LOG_FILE" 2>&1 &
+setsid bash -lc "./gradlew runServer ${GRADLE_TARGET_ARGS[*]} --console=plain --no-daemon" >"$LOG_FILE" 2>&1 &
 SERVER_PID="$!"
 
 cleanup() {

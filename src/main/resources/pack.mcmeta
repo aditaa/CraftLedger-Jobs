@@ -3,6 +3,6 @@
     "description": {
       "text": "CraftLedger Jobs resources"
     },
-    "pack_format": 15
+    "pack_format": ${resource_pack_format}
   }
 }
