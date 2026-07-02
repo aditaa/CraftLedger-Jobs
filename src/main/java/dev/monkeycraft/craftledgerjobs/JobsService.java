@@ -1,6 +1,5 @@
 package dev.monkeycraft.craftledgerjobs;
 
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -82,7 +81,7 @@ public final class JobsService {
         if (job == null) {
             return;
         }
-        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock());
+        ResourceLocation blockId = RegistryIds.blockId(event.getState().getBlock());
         if (event.getState().getBlock() instanceof CropBlock crop && !crop.isMaxAge(event.getState())) {
             return;
         }
@@ -128,7 +127,7 @@ public final class JobsService {
         if (job == null) {
             return;
         }
-        ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
+        ResourceLocation entityId = RegistryIds.entityTypeId(event.getEntity().getType());
         String detail = entityId.toString();
         pay(player, job.entityKill.get(detail), job.entityKillXp.get(detail), "job_entity_kill", detail);
     }

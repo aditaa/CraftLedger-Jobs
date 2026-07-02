@@ -312,6 +312,31 @@ tasks.register('validateServerOnlySources') {
     }
 }
 
+tasks.register('validateSharedSourcesForMinecraftTargets') {
+    group = 'verification'
+    description = 'Fails when shared sources reference Minecraft APIs that are not available across scaffolded target profiles.'
+
+    doLast {
+        def forbiddenPatterns = [
+                'net.minecraft.core.registries.BuiltInRegistries'
+        ]
+        def violations = []
+
+        fileTree('src/main/java').matching { include '**/*.java' }.files.each { sourceFile ->
+            def text = sourceFile.getText('UTF-8')
+            forbiddenPatterns.each { pattern ->
+                if (text.contains(pattern)) {
+                    violations << "${project.relativePath(sourceFile)} references ${pattern}"
+                }
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new GradleException("Shared source multi-version validation failed:\n - ${violations.join('\n - ')}")
+        }
+    }
+}
+
 tasks.register('validateRepositoryFiles') {
     group = 'verification'
     description = 'Validates repository files expected for a trustworthy open-source project.'
@@ -400,6 +425,7 @@ tasks.register('validateMinecraftTargetProfiles') {
 tasks.named('check') {
     dependsOn tasks.named('validateJarMetadata')
     dependsOn tasks.named('validateServerOnlySources')
+    dependsOn tasks.named('validateSharedSourcesForMinecraftTargets')
     dependsOn tasks.named('validateRepositoryFiles')
     dependsOn tasks.named('validateMinecraftTargetProfiles')
 }

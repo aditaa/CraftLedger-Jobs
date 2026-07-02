@@ -1,6 +1,5 @@
 package dev.monkeycraft.craftledgerjobs;
 
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
@@ -106,10 +105,13 @@ public final class ShopService {
             return BuyResult.notForSale();
         }
         ResourceLocation id = ResourceLocation.tryParse(normalizedItemId);
-        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
+        if (id == null || !RegistryIds.hasItem(id)) {
             return BuyResult.invalidItem();
         }
-        Item item = BuiltInRegistries.ITEM.get(id);
+        Item item = RegistryIds.item(id);
+        if (item == null) {
+            return BuyResult.invalidItem();
+        }
         int clampedAmount = Math.max(1, amount);
         int itemMaxStack = new ItemStack(item).getMaxStackSize();
         int maxStack = offer.maxStack <= 0 ? itemMaxStack : Math.min(offer.maxStack, itemMaxStack);
@@ -181,7 +183,7 @@ public final class ShopService {
     }
 
     private static String itemId(Item item) {
-        return BuiltInRegistries.ITEM.getKey(item).toString();
+        return RegistryIds.itemId(item).toString();
     }
 
     public record BuyResult(boolean success, String message, double total, int amount, boolean droppedItems) {
