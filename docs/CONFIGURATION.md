@@ -36,9 +36,12 @@ Controls jobs and event payouts.
 
 ```json
 {
+  "allowSwitching": true,
+  "notifyPayouts": true,
   "jobs": {
     "miner": {
       "displayName": "Miner",
+      "description": "Earn money from ores and mining materials.",
       "blockBreak": {
         "minecraft:coal_ore": 1.0
       },
@@ -68,6 +71,8 @@ Current validation rules:
 - Shop item ids must use namespaced ids such as `minecraft:bread`.
 - Shop prices must be finite and greater than `0`.
 - Buy offer `maxStack` must be greater than or equal to `0`; `0` means use the item default.
+- `allowSwitching` controls whether players can join another job without leaving first.
+- `notifyPayouts` controls whether players receive chat messages for each job payout.
 - Job ids may contain lowercase letters, numbers, underscores, and hyphens.
 - Job payout ids must be namespaced ids such as `minecraft:coal_ore`.
 - Job payouts must be finite and greater than `0`.
