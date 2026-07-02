@@ -90,4 +90,18 @@ class PlayerStoreTest {
 
         assertEquals(List.of("Ada", "Bert"), store.knownPlayerNames());
     }
+
+    @Test
+    void topBalancesSortsByBalanceThenName() throws Exception {
+        PlayerStore store = PlayerStore.load(tempDir.resolve("players.json"), 10.0D);
+        store.set(UUID.randomUUID(), "Bert", 100.0D);
+        store.set(UUID.randomUUID(), "Ada", 100.0D);
+        store.set(UUID.randomUUID(), "Cora", 250.0D);
+
+        assertEquals(List.of(
+                new PlayerStore.BalanceEntry("Cora", 250.0D),
+                new PlayerStore.BalanceEntry("Ada", 100.0D),
+                new PlayerStore.BalanceEntry("Bert", 100.0D)
+        ), store.topBalances());
+    }
 }

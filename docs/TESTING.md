@@ -58,14 +58,15 @@ Use a Forge 1.20.1 dedicated server with Forge 47.4.10.
 4. Join from a client that does not have CraftLedger Jobs installed.
 5. Confirm there is no rejected channel/version error.
 6. Run `/balance`.
-7. Run `/pay <player> <amount>` with two players.
-8. Run `/sell hand` with a configured sellable item.
-9. Run `/shop list`, `/shop sell`, and `/shop buy minecraft:bread 1`.
-10. Run `/jobs`, `/job current`, and `/job info miner`.
-11. Run `/job join miner`, break a configured ore, and confirm payout.
-12. Run `/craftledger reload` as an operator.
-13. Run `/craftledger balance get <player>` as an operator.
-14. Stop and restart the server, then confirm balances persisted.
+7. Run `/baltop`.
+8. Run `/pay <player> <amount>` with two players.
+9. Run `/sell hand 1` and `/sell all minecraft:cobblestone` with configured sellable items.
+10. Run `/shop list`, `/shop sell`, `/shop price minecraft:bread`, and `/shop buy minecraft:bread 1`.
+11. Run `/jobs`, `/job current`, and `/job info miner`.
+12. Run `/job join miner`, break a configured ore, and confirm payout.
+13. Run `/craftledger reload` as an operator.
+14. Run `/craftledger balance get <player>` as an operator.
+15. Stop and restart the server, then confirm balances persisted.
 
 ## Pre-Release Standard
 

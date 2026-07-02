@@ -58,11 +58,13 @@ Player commands:
 - `/balance`
 - `/balance <player>` for operators
 - `/money`
+- `/baltop [page]`
 - `/pay <player> <amount>`
-- `/sell hand`
-- `/sell all`
+- `/sell hand [amount]`
+- `/sell all [item]`
 - `/shop list [page]`
 - `/shop sell [page]`
+- `/shop price <item>`
 - `/shop buy <item> [amount]`
 - `/jobs [page]`
 - `/job join <job>`
