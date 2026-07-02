@@ -86,6 +86,7 @@ Operator commands:
 - `/craftledger player info <player>`
 - `/craftledger job set <player> <job>`
 - `/craftledger job clear <player>`
+- `/craftledger storage migrate json-to-sqlite [dry-run]`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
 - `/craftledger transactions tail [lines]`
@@ -112,6 +113,8 @@ World data is stored in `world/craftledger/`:
 Player data is saved by UUID with last known player name. JSON writes go through a temporary file and atomic replace when the filesystem supports it.
 
 For larger servers, `common.toml` can set `storageBackend = "sqlite"` to store player balances, jobs, job payout totals, and transactions in `world/craftledger/craftledger.sqlite`. The default remains JSON.
+
+Use `/craftledger storage migrate json-to-sqlite dry-run` before switching an existing JSON-backed server to SQLite. The live migration creates a timestamped backup under `world/craftledger/`, writes the SQLite file, then requires setting `storageBackend = "sqlite"` and restarting.
 
 See [Configuration](docs/CONFIGURATION.md) for examples.
 See [Installation and Administration](docs/INSTALLATION.md) for server setup and backup notes.

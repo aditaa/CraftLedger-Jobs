@@ -14,11 +14,16 @@ currencyName = "coins"
 currencySymbol = "$"
 storageBackend = "json"
 sqliteFile = "craftledger.sqlite"
+maxBalance = 0.0
+maxPayAmount = 0.0
+payCooldownSeconds = 0
 ```
 
 Set `currencyEnabled = false` to turn off CraftLedger's virtual currency features. Jobs can still run with XP payouts while currency is disabled.
 
 Set `storageBackend = "sqlite"` to store player accounts, job assignments, daily payout totals, and transactions in a SQLite database under `world/craftledger/`. `sqliteFile` must be a file name, not a path. Backend changes require a server restart.
+
+`maxBalance`, `maxPayAmount`, and `payCooldownSeconds` are economy safety controls. `0` disables the relevant limit.
 
 ## `shop.json`
 
@@ -114,6 +119,9 @@ Current validation rules:
 - `currencyName` and `currencySymbol` must not be blank.
 - `storageBackend` must be `json` or `sqlite`.
 - `sqliteFile` must be a file name, not a path.
+- `maxBalance` caps player balances from pay, sell, jobs, and admin add/set commands. `0` disables the cap.
+- `maxPayAmount` caps a single `/pay` transfer. `0` disables the cap.
+- `payCooldownSeconds` adds a per-player cooldown to `/pay`. `0` disables the cooldown.
 - Shop item ids must use namespaced ids such as `minecraft:bread`.
 - Shop prices must be finite and greater than `0`.
 - Buy offer `maxStack` must be greater than or equal to `0`; `0` means use the item default.
@@ -139,3 +147,19 @@ CraftLedger Jobs registers Forge permission nodes and falls back to Minecraft op
 - `craftledger_jobs.balance.other`
 - `craftledger_jobs.balance.top`
 - `craftledger_jobs.transactions`
+
+## JSON to SQLite Migration
+
+Run a dry-run first:
+
+```text
+/craftledger storage migrate json-to-sqlite dry-run
+```
+
+Then run the live migration while `storageBackend = "json"`:
+
+```text
+/craftledger storage migrate json-to-sqlite
+```
+
+The command saves current JSON data, creates a timestamped backup directory under `world/craftledger/`, creates the SQLite file, and imports player accounts, job assignments, daily payout totals, and transactions. It does not edit `common.toml`; after a successful migration, set `storageBackend = "sqlite"` and restart the server.

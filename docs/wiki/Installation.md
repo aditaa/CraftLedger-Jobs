@@ -20,3 +20,5 @@
 Back up `world/craftledger/` with the world. It contains player balances, job data, placed-block anti-abuse data, payout totals, and transaction logs.
 
 For larger servers, set `storageBackend = "sqlite"` in `config/craftledger/common.toml`, restart the server, and confirm `world/craftledger/craftledger.sqlite` is created. Test this on a disposable world before using it on production data.
+
+For existing JSON data, run `/craftledger storage migrate json-to-sqlite dry-run`, then `/craftledger storage migrate json-to-sqlite`, then switch `storageBackend` and restart.

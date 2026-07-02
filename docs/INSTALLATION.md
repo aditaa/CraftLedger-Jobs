@@ -42,6 +42,8 @@ Back up the world data files with the world. They contain balances, job selectio
 
 If `storageBackend = "sqlite"` is enabled in `common.toml`, balances, jobs, daily payout totals, and transactions move to `world/craftledger/craftledger.sqlite`. `placed_blocks.json` remains a separate anti-abuse tracking file.
 
+For an existing JSON-backed server, run `/craftledger storage migrate json-to-sqlite dry-run`, then `/craftledger storage migrate json-to-sqlite`. After it succeeds, set `storageBackend = "sqlite"` in `common.toml` and restart.
+
 ## Reloading
 
 Use `/craftledger reload` after editing config files. Reload validates config before replacing the active settings. If validation fails, the previous active settings remain in memory.

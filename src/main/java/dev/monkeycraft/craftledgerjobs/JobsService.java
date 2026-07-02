@@ -138,14 +138,14 @@ public final class JobsService {
         if (currency <= 0 && xp <= 0) {
             return;
         }
-        if (currency > 0 && !ledger.players().canDeposit(player, currency)) {
+        if (currency > 0 && !ledger.canDeposit(player, currency)) {
             return;
         }
         String payoutKey = type + ":" + detail;
         if (!payoutLimiter.allow(player.getUUID(), payoutKey, currency, ledger.jobsConfig())) {
             return;
         }
-        if (currency > 0 && !ledger.players().deposit(player, currency)) {
+        if (currency > 0 && !ledger.deposit(player, currency)) {
             return;
         }
         if (xp > 0) {

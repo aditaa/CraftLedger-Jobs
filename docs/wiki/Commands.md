@@ -29,6 +29,7 @@
 - `/craftledger player info <player>`
 - `/craftledger job set <player> <job>`
 - `/craftledger job clear <player>`
+- `/craftledger storage migrate json-to-sqlite [dry-run]`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
 - `/craftledger transactions tail [lines]`

@@ -12,11 +12,18 @@ currencyName = "coins"
 currencySymbol = "$"
 storageBackend = "json"
 sqliteFile = "craftledger.sqlite"
+maxBalance = 0.0
+maxPayAmount = 0.0
+payCooldownSeconds = 0
 ```
 
 Set `currencyEnabled = false` to disable virtual currency features. Jobs can still pay XP while currency is disabled.
 
 Set `storageBackend = "sqlite"` to store balances, job assignments, payout totals, and transactions in `world/craftledger/craftledger.sqlite`. Changing storage backend or SQLite file requires a server restart.
+
+Run `/craftledger storage migrate json-to-sqlite dry-run` before migrating an existing JSON server. After the live migration, set `storageBackend = "sqlite"` and restart.
+
+`maxBalance`, `maxPayAmount`, and `payCooldownSeconds` are optional economy safety controls. Set them to `0` to disable the limit.
 
 ## `shop.json`
 

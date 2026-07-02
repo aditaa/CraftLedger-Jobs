@@ -94,6 +94,15 @@ Run this on a disposable world before using SQLite on a real server:
 5. Stop and restart the server, then confirm balances, job assignments, payout totals, and transactions persisted.
 6. Confirm `placed_blocks.json` is still created and block-place anti-abuse still works.
 
+For migration testing from JSON storage:
+
+1. Start with `storageBackend = "json"` and create balances, job assignments, payout totals, and transactions.
+2. Run `/craftledger storage migrate json-to-sqlite dry-run`.
+3. Run `/craftledger storage migrate json-to-sqlite`.
+4. Confirm a `migration-backup-*` directory exists under `world/craftledger/`.
+5. Set `storageBackend = "sqlite"` and restart.
+6. Confirm migrated balances, job assignments, payout totals, and transaction tail output are present.
+
 ## Pre-Release Standard
 
 Do not publish a release jar until the automated checks pass and the manual dedicated-server checklist has been completed on a staging server.

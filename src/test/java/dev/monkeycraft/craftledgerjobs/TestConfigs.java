@@ -12,7 +12,10 @@ final class TestConfigs {
                 currencyName,
                 currencySymbol,
                 CommonConfig.STORAGE_JSON,
-                "craftledger.sqlite"
+                "craftledger.sqlite",
+                0.0D,
+                0.0D,
+                0
         );
     }
 }

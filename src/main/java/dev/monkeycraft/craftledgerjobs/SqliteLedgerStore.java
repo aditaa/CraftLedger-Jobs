@@ -329,11 +329,51 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
 
     @Override
     public synchronized void write(String type, String playerName, String playerUuid, double amount, String detail) {
+        writeRaw(Instant.now().toString(), type, playerName, playerUuid, amount, detail);
+    }
+
+    synchronized void importPlayer(UUID uuid, String name, double balance, String job, boolean initialized) {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO players(uuid, last_known_name, balance, job, initialized)
+                VALUES(?, ?, ?, ?, ?)
+                ON CONFLICT(uuid) DO UPDATE SET
+                    last_known_name = excluded.last_known_name,
+                    balance = excluded.balance,
+                    job = excluded.job,
+                    initialized = excluded.initialized
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, name);
+            statement.setDouble(3, EconomyRules.nonNegativeFiniteOrZero(balance));
+            statement.setString(4, job);
+            statement.setBoolean(5, initialized);
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to import SQLite player " + uuid, ex);
+        }
+    }
+
+    synchronized void importJobPayoutTotal(UUID playerUuid, LocalDate day, double amount) {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO job_payouts(day, uuid, amount)
+                VALUES(?, ?, ?)
+                ON CONFLICT(day, uuid) DO UPDATE SET amount = excluded.amount
+                """)) {
+            statement.setString(1, day.toString());
+            statement.setString(2, playerUuid.toString());
+            statement.setDouble(3, Math.max(0.0D, Double.isFinite(amount) ? amount : 0.0D));
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to import SQLite payout total for " + playerUuid, ex);
+        }
+    }
+
+    synchronized void writeRaw(String createdAt, String type, String playerName, String playerUuid, double amount, String detail) {
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO transactions(created_at, type, player_name, player_uuid, amount, detail)
                 VALUES(?, ?, ?, ?, ?, ?)
                 """)) {
-            statement.setString(1, Instant.now().toString());
+            statement.setString(1, clean(createdAt));
             statement.setString(2, clean(type));
             statement.setString(3, clean(playerName));
             statement.setString(4, clean(playerUuid));
@@ -343,6 +383,10 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
         } catch (SQLException ex) {
             CraftLedgerJobs.LOGGER.error("Failed to write CraftLedger SQLite transaction", ex);
         }
+    }
+
+    synchronized boolean hasImportedData() {
+        return rowCount("players") > 0 || rowCount("job_payouts") > 0 || rowCount("transactions") > 0;
     }
 
     @Override
@@ -397,8 +441,12 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
     }
 
     @Override
-    public synchronized void close() throws SQLException {
-        connection.close();
+    public synchronized void close() {
+        try {
+            connection.close();
+        } catch (SQLException ex) {
+            CraftLedgerJobs.LOGGER.warn("Failed to close CraftLedger SQLite storage", ex);
+        }
     }
 
     private void initializeSchema() throws SQLException {
@@ -434,6 +482,15 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
                     """);
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_transactions_player_uuid ON transactions(player_uuid)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_transactions_player_name ON transactions(player_name)");
+        }
+    }
+
+    private int rowCount(String table) {
+        try (Statement statement = connection.createStatement();
+             ResultSet results = statement.executeQuery("SELECT COUNT(*) FROM " + table)) {
+            return results.next() ? results.getInt(1) : 0;
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to inspect SQLite table " + table, ex);
         }
     }
 

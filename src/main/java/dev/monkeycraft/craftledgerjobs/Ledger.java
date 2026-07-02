@@ -17,13 +17,14 @@ public final class Ledger {
     private JobPayoutDataStore jobPayoutStore;
     private TransactionStore transactionLog;
     private PlacedBlockStore placedBlockStore;
+    private Path dataDir;
     private ShopService shopService;
     private JobsService jobsService;
 
     public void start(MinecraftServer server) {
         try {
             Path configDir = FMLPaths.CONFIGDIR.get().resolve("craftledger");
-            Path dataDir = server.getWorldPath(LevelResource.ROOT).resolve("craftledger");
+            dataDir = server.getWorldPath(LevelResource.ROOT).resolve("craftledger");
             Files.createDirectories(configDir);
             Files.createDirectories(dataDir);
 
@@ -106,6 +107,33 @@ public final class Ledger {
         return playerStore;
     }
 
+    public boolean canDeposit(net.minecraft.server.level.ServerPlayer player, double amount) {
+        ensureStarted();
+        double balance = playerStore.balance(player);
+        return playerStore.canDeposit(player, amount) && canAddWithinMaxBalance(balance, amount);
+    }
+
+    public boolean deposit(net.minecraft.server.level.ServerPlayer player, double amount) {
+        ensureStarted();
+        return canDeposit(player, amount) && playerStore.deposit(player, amount);
+    }
+
+    public boolean canSetBalance(double amount) {
+        ensureStarted();
+        return EconomyRules.nonNegativeFiniteOrZero(amount) == amount && withinMaxBalance(amount);
+    }
+
+    public boolean canAddBalance(java.util.UUID uuid, String name, double amount) {
+        ensureStarted();
+        return canAddWithinMaxBalance(playerStore.balance(uuid, name), amount);
+    }
+
+    public String maxBalanceMessage() {
+        return commonConfig.maxBalance() <= 0
+                ? "That balance amount is not allowed."
+                : "That would exceed the configured max balance of " + commonConfig.format(commonConfig.maxBalance()) + ".";
+    }
+
     public TransactionStore transactions() {
         ensureStarted();
         return transactionLog;
@@ -119,6 +147,11 @@ public final class Ledger {
     public PlacedBlockStore placedBlocks() {
         ensureStarted();
         return placedBlockStore;
+    }
+
+    public Path dataDir() {
+        ensureStarted();
+        return dataDir;
     }
 
     public ShopService shop() {
@@ -150,5 +183,16 @@ public final class Ledger {
         playerStore = PlayerStore.load(dataDir.resolve("players.json"), commonConfig.startingBalance());
         jobPayoutStore = JobPayoutStore.load(dataDir.resolve("job_payouts.json"));
         transactionLog = new TransactionLog(dataDir.resolve("transactions.log"));
+    }
+
+    private boolean canAddWithinMaxBalance(double balance, double amount) {
+        if (!EconomyRules.canAddToBalance(balance, amount)) {
+            return false;
+        }
+        return withinMaxBalance(EconomyRules.addToBalance(balance, amount));
+    }
+
+    private boolean withinMaxBalance(double balance) {
+        return commonConfig.maxBalance() <= 0 || balance <= commonConfig.maxBalance();
     }
 }
