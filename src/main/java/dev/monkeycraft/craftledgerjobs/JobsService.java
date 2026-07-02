@@ -20,6 +20,9 @@ public final class JobsService {
     }
 
     public JoinResult join(ServerPlayer player, String jobId) {
+        if (!ledger.jobsConfig().enabled) {
+            return JoinResult.JOBS_DISABLED;
+        }
         String normalized = jobId.toLowerCase(Locale.ROOT);
         if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
             return JoinResult.UNKNOWN_JOB;
@@ -37,16 +40,25 @@ public final class JobsService {
     }
 
     public void leave(ServerPlayer player) {
+        if (!ledger.jobsConfig().enabled) {
+            return;
+        }
         String oldJob = ledger.players().job(player);
         ledger.players().clearJob(player);
         ledger.transactions().write("job_leave", player, 0, oldJob == null ? "" : oldJob);
     }
 
     public String listJobs(String currentJob, int page) {
+        if (!ledger.jobsConfig().enabled) {
+            return "Jobs are disabled.";
+        }
         return JobViews.list(ledger.jobsConfig(), currentJob, page);
     }
 
     public String info(String jobId, int page) {
+        if (!ledger.jobsConfig().enabled) {
+            return "Jobs are disabled.";
+        }
         return JobViews.info(ledger.jobsConfig(), ledger.common(), jobId, page);
     }
 
@@ -56,6 +68,9 @@ public final class JobsService {
 
     public void handleBlockBreak(BlockEvent.BreakEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (!ledger.jobsConfig().enabled) {
             return;
         }
         String jobId = ledger.players().job(player);
@@ -70,12 +85,15 @@ public final class JobsService {
         if (event.getState().getBlock() instanceof CropBlock crop && !crop.isMaxAge(event.getState())) {
             return;
         }
-        Double payout = job.blockBreak.get(blockId.toString());
-        pay(player, payout, "job_block_break", blockId.toString());
+        String detail = blockId.toString();
+        pay(player, job.blockBreak.get(detail), job.blockBreakXp.get(detail), "job_block_break", detail);
     }
 
     public void handleLivingDeath(LivingDeathEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (!ledger.jobsConfig().enabled) {
             return;
         }
         if (event.getEntity() instanceof Player) {
@@ -90,32 +108,58 @@ public final class JobsService {
             return;
         }
         ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
-        Double payout = job.entityKill.get(entityId.toString());
-        pay(player, payout, "job_entity_kill", entityId.toString());
+        String detail = entityId.toString();
+        pay(player, job.entityKill.get(detail), job.entityKillXp.get(detail), "job_entity_kill", detail);
     }
 
-    private void pay(ServerPlayer player, Double payout, String type, String detail) {
-        if (payout == null || !EconomyRules.isPositiveFinite(payout)) {
+    private void pay(ServerPlayer player, Double currencyPayout, Integer xpPayout, String type, String detail) {
+        double currency = ledger.common().currencyEnabled() && currencyPayout != null && EconomyRules.isPositiveFinite(currencyPayout) ? currencyPayout : 0.0D;
+        int xp = xpPayout == null ? 0 : Math.max(0, xpPayout);
+        if (currency <= 0 && xp <= 0) {
             return;
         }
-        if (!ledger.players().canDeposit(player, payout)) {
+        if (currency > 0 && !ledger.players().canDeposit(player, currency)) {
             return;
         }
         String payoutKey = type + ":" + detail;
-        if (!payoutLimiter.allow(player.getUUID(), payoutKey, payout, ledger.jobsConfig())) {
+        if (!payoutLimiter.allow(player.getUUID(), payoutKey, currency, ledger.jobsConfig())) {
             return;
         }
-        if (!ledger.players().deposit(player, payout)) {
+        if (currency > 0 && !ledger.players().deposit(player, currency)) {
             return;
         }
-        ledger.transactions().write(type, player, payout, detail);
+        if (xp > 0) {
+            player.giveExperiencePoints(xp);
+        }
+        ledger.transactions().write(type, player, currency, detail + payoutDetail(currency, xp));
         if (ledger.jobsConfig().notifyPayouts) {
-            player.sendSystemMessage(TextUtil.success("Job payout: " + ledger.common().format(payout)));
+            player.sendSystemMessage(TextUtil.success("Job payout: " + payoutMessage(currency, xp)));
         }
+    }
+
+    private String payoutMessage(double currency, int xp) {
+        if (currency > 0 && xp > 0) {
+            return ledger.common().format(currency) + " and " + xp + " XP";
+        }
+        if (currency > 0) {
+            return ledger.common().format(currency);
+        }
+        return xp + " XP";
+    }
+
+    private static String payoutDetail(double currency, int xp) {
+        if (xp <= 0) {
+            return "";
+        }
+        if (currency <= 0) {
+            return " xp " + xp;
+        }
+        return " xp " + xp;
     }
 
     public enum JoinResult {
         SUCCESS,
+        JOBS_DISABLED,
         UNKNOWN_JOB,
         ALREADY_IN_JOB,
         SWITCHING_DISABLED

@@ -23,6 +23,8 @@ CraftLedger Jobs is not ready for a first public jar release yet. Use this check
 - README is current.
 - Commands are documented.
 - Config examples are documented.
+- Installation/admin docs are documented.
+- GitHub Wiki pages are published or staged from `docs/wiki/`.
 - Repository social preview is set from `.github/assets/social-preview.png`.
 - Changelog entry is written.
 - Known limitations are documented.

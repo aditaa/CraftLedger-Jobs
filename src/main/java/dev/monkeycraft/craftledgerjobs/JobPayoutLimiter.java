@@ -33,7 +33,7 @@ public final class JobPayoutLimiter {
         }
 
         double dailyLimit = config.dailyPayoutLimit;
-        if (dailyLimit > 0 && !payoutStore.allowAndRecord(playerUuid, now, payout, dailyLimit)) {
+        if (dailyLimit > 0 && payout > 0 && !payoutStore.allowAndRecord(playerUuid, now, payout, dailyLimit)) {
             return false;
         }
         if (cooldownSeconds > 0) {

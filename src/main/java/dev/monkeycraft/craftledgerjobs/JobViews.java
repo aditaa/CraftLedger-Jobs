@@ -27,8 +27,12 @@ final class JobViews {
         }
 
         List<String> rows = new ArrayList<>();
-        job.blockBreak.forEach((id, amount) -> rows.add("Break " + id + ": " + common.format(amount)));
-        job.entityKill.forEach((id, amount) -> rows.add("Kill " + id + ": " + common.format(amount)));
+        if (common.currencyEnabled()) {
+            job.blockBreak.forEach((id, amount) -> rows.add("Break " + id + ": " + common.format(amount)));
+            job.entityKill.forEach((id, amount) -> rows.add("Kill " + id + ": " + common.format(amount)));
+        }
+        job.blockBreakXp.forEach((id, amount) -> rows.add("Break " + id + ": " + amount + " XP"));
+        job.entityKillXp.forEach((id, amount) -> rows.add("Kill " + id + ": " + amount + " XP"));
 
         String header = job.displayName + " (" + jobId.toLowerCase(java.util.Locale.ROOT) + ")";
         if (!job.description.isBlank()) {

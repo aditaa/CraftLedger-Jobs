@@ -23,6 +23,7 @@ class JobsConfigTest {
         JobsConfig config = JobsConfig.load(path);
 
         assertTrue(Files.exists(path));
+        assertTrue(config.enabled);
         assertTrue(config.allowSwitching);
         assertTrue(config.notifyPayouts);
         assertEquals(0, config.payoutCooldownSeconds);
@@ -32,6 +33,7 @@ class JobsConfigTest {
         assertTrue(config.jobs.containsKey("hunter"));
         assertTrue(config.jobs.containsKey("woodcutter"));
         assertEquals(20.0D, config.jobs.get("miner").blockBreak.get("minecraft:diamond_ore"));
+        assertEquals(10, config.jobs.get("miner").blockBreakXp.get("minecraft:diamond_ore"));
         assertEquals("Earn money from ores and mining materials.", config.jobs.get("miner").description);
         assertEquals(2.00D, config.jobs.get("hunter").entityKill.get("minecraft:creeper"));
     }
@@ -54,8 +56,12 @@ class JobsConfigTest {
         assertEquals("", custom.description);
         assertNotNull(custom.blockBreak);
         assertNotNull(custom.entityKill);
+        assertNotNull(custom.blockBreakXp);
+        assertNotNull(custom.entityKillXp);
         assertTrue(custom.blockBreak.isEmpty());
         assertTrue(custom.entityKill.isEmpty());
+        assertTrue(custom.blockBreakXp.isEmpty());
+        assertTrue(custom.entityKillXp.isEmpty());
     }
 
     @Test
@@ -97,11 +103,32 @@ class JobsConfigTest {
     }
 
     @Test
+    void loadRejectsInvalidPayoutResourceId() throws Exception {
+        Path path = tempDir.resolve("jobs.json");
+        Files.writeString(path, """
+                {
+                  "jobs": {
+                    "miner": {
+                      "displayName": "Miner",
+                      "blockBreak": {
+                        "coal_ore": 1.0
+                      },
+                      "entityKill": {}
+                    }
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+    }
+
+    @Test
     void loadParsesGlobalJobOptionsAndDescription() throws Exception {
         Path path = tempDir.resolve("jobs.json");
         Files.writeString(path, """
                 {
                   "allowSwitching": false,
+                  "enabled": false,
                   "notifyPayouts": false,
                   "payoutCooldownSeconds": 10,
                   "dailyPayoutLimit": 250.0,
@@ -112,7 +139,11 @@ class JobsConfigTest {
                       "blockBreak": {
                         "minecraft:coal_ore": 1.0
                       },
-                      "entityKill": {}
+                      "entityKill": {},
+                      "blockBreakXp": {
+                        "minecraft:coal_ore": 3
+                      },
+                      "entityKillXp": {}
                     }
                   }
                 }
@@ -120,10 +151,12 @@ class JobsConfigTest {
 
         JobsConfig config = JobsConfig.load(path);
 
+        assertFalse(config.enabled);
         assertFalse(config.allowSwitching);
         assertFalse(config.notifyPayouts);
         assertEquals(10, config.payoutCooldownSeconds);
         assertEquals(250.0D, config.dailyPayoutLimit);
+        assertEquals(3, config.jobs.get("miner").blockBreakXp.get("minecraft:coal_ore"));
         assertEquals("Dig carefully.", config.jobs.get("miner").description);
     }
 
@@ -143,6 +176,28 @@ class JobsConfigTest {
                 {
                   "dailyPayoutLimit": -1.0,
                   "jobs": {}
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsInvalidXpPayout() throws Exception {
+        Path path = tempDir.resolve("jobs.json");
+        Files.writeString(path, """
+                {
+                  "jobs": {
+                    "miner": {
+                      "displayName": "Miner",
+                      "blockBreak": {},
+                      "entityKill": {},
+                      "blockBreakXp": {
+                        "minecraft:coal_ore": 0
+                      },
+                      "entityKillXp": {}
+                    }
+                  }
                 }
                 """);
 

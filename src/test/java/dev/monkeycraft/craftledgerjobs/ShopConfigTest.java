@@ -70,4 +70,35 @@ class ShopConfigTest {
 
         assertThrows(ConfigValidationException.class, () -> ShopConfig.load(path));
     }
+
+    @Test
+    void loadRejectsNegativeMaxStack() throws Exception {
+        Path path = tempDir.resolve("shop.json");
+        Files.writeString(path, """
+                {
+                  "buyPrices": {
+                    "minecraft:bread": {
+                      "price": 2.0,
+                      "maxStack": -1
+                    }
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> ShopConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsNullBuyOffer() throws Exception {
+        Path path = tempDir.resolve("shop.json");
+        Files.writeString(path, """
+                {
+                  "buyPrices": {
+                    "minecraft:bread": null
+                  }
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> ShopConfig.load(path));
+    }
 }

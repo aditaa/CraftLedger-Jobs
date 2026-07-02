@@ -80,4 +80,34 @@ class TransactionLogTest {
         assertTrue(threeLines.get(2).contains("type55"));
         assertEquals(50, log.tail(500).size());
     }
+
+    @Test
+    void tailHandlesEmptyAndShortLogs() throws Exception {
+        Path path = tempDir.resolve("transactions.log");
+        TransactionLog log = new TransactionLog(path);
+
+        assertTrue(log.tail(10).isEmpty());
+
+        log.write("one", "Ada", "uuid", 1.0D, "detail");
+
+        List<String> lines = log.tail(10);
+        assertEquals(1, lines.size());
+        assertTrue(lines.get(0).contains("one"));
+    }
+
+    @Test
+    void tailHandlesLargeLogWithoutLosingLastEntry() throws Exception {
+        Path path = tempDir.resolve("transactions.log");
+        TransactionLog log = new TransactionLog(path);
+        String largeDetail = "x".repeat(9000);
+
+        for (int index = 1; index <= 60; index++) {
+            log.write("type" + index, "Ada", "uuid", index, largeDetail);
+        }
+
+        List<String> lines = log.tail(5);
+        assertEquals(5, lines.size());
+        assertTrue(lines.get(0).contains("type56"));
+        assertTrue(lines.get(4).contains("type60"));
+    }
 }

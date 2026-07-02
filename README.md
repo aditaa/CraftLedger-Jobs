@@ -13,6 +13,8 @@ Server-side jobs and economy for Forge 1.20.1 servers.
 
 CraftLedger Jobs is built for Minecraft servers that want balances, shops, sell commands, and job payouts without requiring players to install an extra client-side mod.
 
+Default configs are generated on first server start, so the mod is intended to be usable as a drop-in jar before deeper customization.
+
 ## Project Status
 
 CraftLedger Jobs is pre-release. The first jar release is intentionally not published yet.
@@ -104,6 +106,7 @@ World data is stored in `world/craftledger/`:
 Player data is saved by UUID with last known player name. Writes go through a temporary file and atomic replace when the filesystem supports it.
 
 See [Configuration](docs/CONFIGURATION.md) for examples.
+See [Installation and Administration](docs/INSTALLATION.md) for server setup and backup notes.
 
 Current permission gates use operator level 2 as the fallback:
 
@@ -162,6 +165,8 @@ Start with:
 - [Contributing Guide](CONTRIBUTING.md)
 - [Agent/Maintainer Guidance](AGENTS.md)
 - [Roadmap](ROADMAP.md)
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md)
+- [Wiki Source](docs/WIKI.md)
 - [Security Policy](SECURITY.md)
 
 Please keep the server-only promise central to changes. Features that require client-side install are out of scope for the current project goal.

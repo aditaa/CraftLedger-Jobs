@@ -160,21 +160,37 @@ public final class CraftLedgerCommands {
     }
 
     private static int balance(ServerPlayer player, Ledger ledger) {
+        if (!ledger.common().currencyEnabled()) {
+            player.sendSystemMessage(TextUtil.error("Currency is disabled."));
+            return 0;
+        }
         player.sendSystemMessage(TextUtil.success("Balance: " + ledger.common().format(ledger.players().balance(player))));
         return 1;
     }
 
     private static int balanceTop(CommandSourceStack source, int page, Ledger ledger) {
+        if (!ledger.common().currencyEnabled()) {
+            source.sendFailure(TextUtil.error("Currency is disabled."));
+            return 0;
+        }
         source.sendSuccess(() -> TextUtil.success(BalanceViews.topBalances(ledger.players().topBalances(), ledger.common(), page)), false);
         return 1;
     }
 
     private static int balanceOther(CommandSourceStack source, ServerPlayer player, Ledger ledger) {
+        if (!ledger.common().currencyEnabled()) {
+            source.sendFailure(TextUtil.error("Currency is disabled."));
+            return 0;
+        }
         source.sendSuccess(() -> TextUtil.success(player.getGameProfile().getName() + " balance: " + ledger.common().format(ledger.players().balance(player))), false);
         return 1;
     }
 
     private static int pay(ServerPlayer source, ServerPlayer target, double amount, Ledger ledger) {
+        if (!ledger.common().currencyEnabled()) {
+            source.sendSystemMessage(TextUtil.error("Currency is disabled."));
+            return 0;
+        }
         if (source.getUUID().equals(target.getUUID())) {
             source.sendSystemMessage(TextUtil.error("You cannot pay yourself."));
             return 0;
@@ -249,6 +265,10 @@ public final class CraftLedgerCommands {
 
     private static int jobJoin(ServerPlayer player, String job, Ledger ledger) {
         JobsService.JoinResult result = ledger.jobs().join(player, job);
+        if (result == JobsService.JoinResult.JOBS_DISABLED) {
+            player.sendSystemMessage(TextUtil.error("Jobs are disabled."));
+            return 0;
+        }
         if (result == JobsService.JoinResult.UNKNOWN_JOB) {
             player.sendSystemMessage(TextUtil.error("Unknown job: " + job));
             return 0;
@@ -266,22 +286,38 @@ public final class CraftLedgerCommands {
     }
 
     private static int jobCurrent(ServerPlayer player, Ledger ledger) {
+        if (!ledger.jobsConfig().enabled) {
+            player.sendSystemMessage(TextUtil.error("Jobs are disabled."));
+            return 0;
+        }
         String current = ledger.players().job(player);
         player.sendSystemMessage(TextUtil.success("Current job: " + (current == null ? "none" : current)));
         return 1;
     }
 
     private static int jobLeave(ServerPlayer player, Ledger ledger) {
+        if (!ledger.jobsConfig().enabled) {
+            player.sendSystemMessage(TextUtil.error("Jobs are disabled."));
+            return 0;
+        }
         ledger.jobs().leave(player);
         player.sendSystemMessage(TextUtil.success("Left your job."));
         return 1;
     }
 
     private static int jobInfo(ServerPlayer player, String job, Ledger ledger) {
+        if (!ledger.jobsConfig().enabled) {
+            player.sendSystemMessage(TextUtil.error("Jobs are disabled."));
+            return 0;
+        }
         return jobInfo(player, job, 1, ledger);
     }
 
     private static int jobInfo(ServerPlayer player, String job, int page, Ledger ledger) {
+        if (!ledger.jobsConfig().enabled) {
+            player.sendSystemMessage(TextUtil.error("Jobs are disabled."));
+            return 0;
+        }
         if (job == null || job.isBlank()) {
             player.sendSystemMessage(TextUtil.error("You have not joined a job."));
             return 0;
@@ -303,6 +339,10 @@ public final class CraftLedgerCommands {
     }
 
     private static int adminBalanceGet(CommandSourceStack source, String playerTarget, Ledger ledger) {
+        if (!ledger.common().currencyEnabled()) {
+            source.sendFailure(TextUtil.error("Currency is disabled."));
+            return 0;
+        }
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
             source.sendFailure(TextUtil.error("Unknown stored player: " + playerTarget + ". The player must join once before offline balance commands can target them."));
@@ -314,6 +354,10 @@ public final class CraftLedgerCommands {
     }
 
     private static int adminBalance(CommandSourceStack source, String playerTarget, double amount, String mode, Ledger ledger) {
+        if (!ledger.common().currencyEnabled()) {
+            source.sendFailure(TextUtil.error("Currency is disabled."));
+            return 0;
+        }
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
             source.sendFailure(TextUtil.error("Unknown stored player: " + playerTarget + ". The player must join once before offline balance commands can target them."));
@@ -323,6 +367,10 @@ public final class CraftLedgerCommands {
     }
 
     private static int adminBalance(CommandSourceStack source, ServerPlayer player, double amount, String mode, Ledger ledger) {
+        if (!ledger.common().currencyEnabled()) {
+            source.sendFailure(TextUtil.error("Currency is disabled."));
+            return 0;
+        }
         return updateBalance(source, new PlayerStore.KnownPlayer(player.getUUID(), player.getGameProfile().getName()), amount, mode, ledger);
     }
 
