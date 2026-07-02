@@ -135,6 +135,17 @@ public final class PlayerStore {
                 .toList();
     }
 
+    public List<BalanceEntry> topBalances() {
+        return players.entrySet().stream()
+                .filter(entry -> entry.getValue().initialized)
+                .map(entry -> new BalanceEntry(displayName(entry.getValue(), entry.getKey()), entry.getValue().balance))
+                .sorted((left, right) -> {
+                    int balanceOrder = Double.compare(right.balance, left.balance);
+                    return balanceOrder != 0 ? balanceOrder : left.name.compareToIgnoreCase(right.name);
+                })
+                .toList();
+    }
+
     public void setJob(ServerPlayer player, String job) {
         PlayerAccount account = get(player);
         account.job = job;
@@ -167,6 +178,9 @@ public final class PlayerStore {
     }
 
     public record KnownPlayer(UUID uuid, String name) {
+    }
+
+    public record BalanceEntry(String name, double balance) {
     }
 
     private record PlayerFile(Map<String, PlayerAccount> players) {

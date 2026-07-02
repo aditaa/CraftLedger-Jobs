@@ -34,6 +34,12 @@ public final class CraftLedgerCommands {
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
                 .executes(ctx -> balance(ctx.getSource().getPlayerOrException(), ledger)));
 
+        dispatcher.register(Commands.literal("baltop")
+                .requires(source -> source.getEntity() instanceof ServerPlayer)
+                .executes(ctx -> balanceTop(ctx.getSource().getPlayerOrException(), 1, ledger))
+                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                        .executes(ctx -> balanceTop(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "page"), ledger))));
+
         dispatcher.register(Commands.literal("pay")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
                 .then(Commands.argument("player", EntityArgument.player())
@@ -43,9 +49,14 @@ public final class CraftLedgerCommands {
         dispatcher.register(Commands.literal("sell")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
                 .then(Commands.literal("hand")
-                        .executes(ctx -> sellHand(ctx.getSource().getPlayerOrException(), ledger)))
+                        .executes(ctx -> sellHand(ctx.getSource().getPlayerOrException(), Integer.MAX_VALUE, ledger))
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                .executes(ctx -> sellHand(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "amount"), ledger))))
                 .then(Commands.literal("all")
-                        .executes(ctx -> sellAll(ctx.getSource().getPlayerOrException(), ledger))));
+                        .executes(ctx -> sellAll(ctx.getSource().getPlayerOrException(), null, ledger))
+                        .then(Commands.argument("item", StringArgumentType.word())
+                                .suggests((ctx, builder) -> suggestSellItems(ledger, builder))
+                                .executes(ctx -> sellAll(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), ledger)))));
 
         dispatcher.register(Commands.literal("shop")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
@@ -57,6 +68,10 @@ public final class CraftLedgerCommands {
                         .executes(ctx -> shopSellList(ctx.getSource().getPlayerOrException(), 1, ledger))
                         .then(Commands.argument("page", IntegerArgumentType.integer(1))
                                 .executes(ctx -> shopSellList(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "page"), ledger))))
+                .then(Commands.literal("price")
+                        .then(Commands.argument("item", StringArgumentType.word())
+                                .suggests((ctx, builder) -> suggestShopPriceItems(ledger, builder))
+                                .executes(ctx -> shopPrice(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), ledger))))
                 .then(Commands.literal("buy")
                         .then(Commands.argument("item", StringArgumentType.word())
                                 .suggests((ctx, builder) -> suggestShopItems(ledger, builder))
@@ -125,6 +140,11 @@ public final class CraftLedgerCommands {
         return 1;
     }
 
+    private static int balanceTop(ServerPlayer player, int page, Ledger ledger) {
+        player.sendSystemMessage(TextUtil.success(BalanceViews.topBalances(ledger.players().topBalances(), ledger.common(), page)));
+        return 1;
+    }
+
     private static int balanceOther(CommandSourceStack source, ServerPlayer player, Ledger ledger) {
         source.sendSuccess(() -> TextUtil.success(player.getGameProfile().getName() + " balance: " + ledger.common().format(ledger.players().balance(player))), false);
         return 1;
@@ -142,21 +162,25 @@ public final class CraftLedgerCommands {
         ledger.players().deposit(target, amount);
         ledger.transactions().write("pay_send", source, amount, "to " + target.getGameProfile().getName());
         ledger.transactions().write("pay_receive", target, amount, "from " + source.getGameProfile().getName());
-        source.sendSystemMessage(TextUtil.success("Paid " + target.getGameProfile().getName() + " " + ledger.common().format(amount)));
-        target.sendSystemMessage(TextUtil.success("Received " + ledger.common().format(amount) + " from " + source.getGameProfile().getName()));
+        source.sendSystemMessage(TextUtil.success("Paid " + target.getGameProfile().getName() + " " + ledger.common().format(amount) + ". Balance: " + ledger.common().format(ledger.players().balance(source))));
+        target.sendSystemMessage(TextUtil.success("Received " + ledger.common().format(amount) + " from " + source.getGameProfile().getName() + ". Balance: " + ledger.common().format(ledger.players().balance(target))));
         return 1;
     }
 
-    private static int sellHand(ServerPlayer player, Ledger ledger) {
-        double total = ledger.shop().sellHand(player);
-        player.sendSystemMessage(total > 0 ? TextUtil.success("Sold hand for " + ledger.common().format(total)) : TextUtil.error("The item in your hand cannot be sold."));
-        return total > 0 ? 1 : 0;
+    private static int sellHand(ServerPlayer player, int amount, Ledger ledger) {
+        ShopService.SellResult result = ledger.shop().sellHand(player, amount);
+        player.sendSystemMessage(result.success()
+                ? TextUtil.success("Sold " + result.itemCount() + " item(s) from hand for " + ledger.common().format(result.total()))
+                : TextUtil.error(result.message()));
+        return result.success() ? 1 : 0;
     }
 
-    private static int sellAll(ServerPlayer player, Ledger ledger) {
-        double total = ledger.shop().sellAll(player);
-        player.sendSystemMessage(total > 0 ? TextUtil.success("Sold items for " + ledger.common().format(total)) : TextUtil.error("No configured sellable items found."));
-        return total > 0 ? 1 : 0;
+    private static int sellAll(ServerPlayer player, String itemId, Ledger ledger) {
+        ShopService.SellResult result = ledger.shop().sellAll(player, itemId);
+        player.sendSystemMessage(result.success()
+                ? TextUtil.success("Sold " + result.itemCount() + " item(s) for " + ledger.common().format(result.total()) + sellSummary(result))
+                : TextUtil.error(result.message()));
+        return result.success() ? 1 : 0;
     }
 
     private static int shopList(ServerPlayer player, int page, Ledger ledger) {
@@ -166,6 +190,11 @@ public final class CraftLedgerCommands {
 
     private static int shopSellList(ServerPlayer player, int page, Ledger ledger) {
         player.sendSystemMessage(TextUtil.success(ledger.shop().listSell(ledger.common(), page)));
+        return 1;
+    }
+
+    private static int shopPrice(ServerPlayer player, String item, Ledger ledger) {
+        player.sendSystemMessage(TextUtil.success(ledger.shop().price(item, ledger.common())));
         return 1;
     }
 
@@ -275,6 +304,20 @@ public final class CraftLedgerCommands {
         return SharedSuggestionProvider.suggest(ledger.shopConfig().buyPrices.keySet(), builder);
     }
 
+    private static CompletableFuture<Suggestions> suggestSellItems(Ledger ledger, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(ledger.shopConfig().sellPrices.keySet(), builder);
+    }
+
+    private static CompletableFuture<Suggestions> suggestShopPriceItems(Ledger ledger, SuggestionsBuilder builder) {
+        List<String> items = new ArrayList<>(ledger.shopConfig().buyPrices.keySet());
+        for (String item : ledger.shopConfig().sellPrices.keySet()) {
+            if (items.stream().noneMatch(existing -> existing.equalsIgnoreCase(item))) {
+                items.add(item);
+            }
+        }
+        return SharedSuggestionProvider.suggest(items, builder);
+    }
+
     private static CompletableFuture<Suggestions> suggestJobs(Ledger ledger, SuggestionsBuilder builder) {
         return SharedSuggestionProvider.suggest(ledger.jobsConfig().jobs.keySet(), builder);
     }
@@ -304,5 +347,14 @@ public final class CraftLedgerCommands {
             cursor = cursor.getCause();
         }
         return cursor.getMessage() == null ? cursor.getClass().getSimpleName() : cursor.getMessage();
+    }
+
+    private static String sellSummary(ShopService.SellResult result) {
+        if (result.items().isEmpty()) {
+            return "";
+        }
+        String first = result.items().get(0).itemId() + " x" + result.items().get(0).count();
+        int remaining = result.items().size() - 1;
+        return remaining > 0 ? " (" + first + ", +" + remaining + " more)" : " (" + first + ")";
     }
 }

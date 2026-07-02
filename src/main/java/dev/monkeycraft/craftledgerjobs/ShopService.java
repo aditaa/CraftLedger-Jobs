@@ -19,44 +19,61 @@ public final class ShopService {
     }
 
     public double sellHand(ServerPlayer player) {
+        return sellHand(player, Integer.MAX_VALUE).total();
+    }
+
+    public SellResult sellHand(ServerPlayer player, int requestedAmount) {
         ItemStack hand = player.getMainHandItem();
         if (hand.isEmpty()) {
-            return 0;
+            return SellResult.none("The item in your hand cannot be sold.");
         }
         String itemId = itemId(hand.getItem());
         Double price = ledger.shopConfig().sellPrices.get(itemId);
         if (price == null || price <= 0) {
-            return 0;
+            return SellResult.none("The item in your hand cannot be sold.");
         }
-        int count = hand.getCount();
-        hand.setCount(0);
+        int count = Math.min(hand.getCount(), Math.max(1, requestedAmount));
+        hand.shrink(count);
         double total = price * count;
         ledger.players().deposit(player, total);
         ledger.transactions().write("sell_hand", player, total, itemId + " x" + count);
-        return total;
+        return SellResult.success(total, count, List.of(new SoldItem(itemId, count, total)));
     }
 
     public double sellAll(ServerPlayer player) {
+        return sellAll(player, null).total();
+    }
+
+    public SellResult sellAll(ServerPlayer player, String requestedItemId) {
+        String normalizedFilter = requestedItemId == null || requestedItemId.isBlank() ? null : requestedItemId.toLowerCase(Locale.ROOT);
         double total = 0;
+        int itemCount = 0;
+        List<SoldItem> soldItems = new ArrayList<>();
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
             ItemStack stack = player.getInventory().getItem(slot);
             if (stack.isEmpty()) {
                 continue;
             }
             String itemId = itemId(stack.getItem());
+            if (normalizedFilter != null && !normalizedFilter.equals(itemId)) {
+                continue;
+            }
             Double price = ledger.shopConfig().sellPrices.get(itemId);
             if (price == null || price <= 0) {
                 continue;
             }
             int count = stack.getCount();
             stack.setCount(0);
-            total += price * count;
+            double lineTotal = price * count;
+            total += lineTotal;
+            itemCount += count;
+            soldItems.add(new SoldItem(itemId, count, lineTotal));
         }
         if (total > 0) {
             ledger.players().deposit(player, total);
-            ledger.transactions().write("sell_all", player, total, "configured sellables");
+            ledger.transactions().write("sell_all", player, total, normalizedFilter == null ? "configured sellables" : normalizedFilter);
         }
-        return total;
+        return total > 0 ? SellResult.success(total, itemCount, soldItems) : SellResult.none("No configured sellable items found.");
     }
 
     public BuyResult buy(ServerPlayer player, String itemId, int amount) {
@@ -113,6 +130,24 @@ public final class ShopService {
         return PagedText.format("Shop sell items", rows, page, 8);
     }
 
+    public String price(String itemId, CommonConfig common) {
+        String normalizedItemId = itemId.toLowerCase(Locale.ROOT);
+        ShopConfig.BuyOffer buyOffer = ledger.shopConfig().buyPrices.get(normalizedItemId);
+        Double sellPrice = ledger.shopConfig().sellPrices.get(normalizedItemId);
+        if (buyOffer == null && sellPrice == null) {
+            return normalizedItemId + " is not configured in the shop.";
+        }
+
+        StringBuilder builder = new StringBuilder(normalizedItemId);
+        if (buyOffer != null) {
+            builder.append("\nBuy: ").append(common.format(buyOffer.price));
+        }
+        if (sellPrice != null) {
+            builder.append("\nSell: ").append(common.format(sellPrice));
+        }
+        return builder.toString();
+    }
+
     private static String itemId(Item item) {
         return BuiltInRegistries.ITEM.getKey(item).toString();
     }
@@ -133,5 +168,18 @@ public final class ShopService {
         static BuyResult insufficientFunds(double total) {
             return new BuyResult(false, "You need more money for that purchase.", total, 0, false);
         }
+    }
+
+    public record SellResult(boolean success, String message, double total, int itemCount, List<SoldItem> items) {
+        static SellResult success(double total, int itemCount, List<SoldItem> items) {
+            return new SellResult(true, "ok", total, itemCount, List.copyOf(items));
+        }
+
+        static SellResult none(String message) {
+            return new SellResult(false, message, 0, 0, List.of());
+        }
+    }
+
+    public record SoldItem(String itemId, int count, double total) {
     }
 }
