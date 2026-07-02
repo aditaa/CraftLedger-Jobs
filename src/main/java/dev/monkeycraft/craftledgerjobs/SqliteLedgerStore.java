@@ -441,8 +441,12 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
     }
 
     @Override
-    public synchronized void close() throws SQLException {
-        connection.close();
+    public synchronized void close() {
+        try {
+            connection.close();
+        } catch (SQLException ex) {
+            CraftLedgerJobs.LOGGER.warn("Failed to close CraftLedger SQLite storage", ex);
+        }
     }
 
     private void initializeSchema() throws SQLException {
