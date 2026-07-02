@@ -62,38 +62,38 @@ public final class PlayerStore {
 
     public boolean withdraw(ServerPlayer player, double amount) {
         PlayerAccount account = get(player);
-        if (amount <= 0 || account.balance < amount) {
+        if (!EconomyRules.canWithdraw(account.balance, amount)) {
             return false;
         }
-        account.balance -= amount;
+        account.balance = EconomyRules.subtractFromBalance(account.balance, amount);
         save();
         return true;
     }
 
     public void deposit(ServerPlayer player, double amount) {
-        if (amount <= 0) {
+        if (!EconomyRules.isPositiveFinite(amount)) {
             return;
         }
         PlayerAccount account = get(player);
-        account.balance += amount;
+        account.balance = EconomyRules.addToBalance(account.balance, amount);
         save();
     }
 
     public void add(UUID uuid, String name, double amount) {
         PlayerAccount account = get(uuid, name);
-        account.balance += amount;
+        account.balance = EconomyRules.addToBalance(account.balance, amount);
         save();
     }
 
     public void set(UUID uuid, String name, double amount) {
         PlayerAccount account = get(uuid, name);
-        account.balance = Math.max(0, amount);
+        account.balance = EconomyRules.nonNegativeFiniteOrZero(amount);
         save();
     }
 
     public void take(UUID uuid, String name, double amount) {
         PlayerAccount account = get(uuid, name);
-        account.balance = Math.max(0, account.balance - Math.max(0, amount));
+        account.balance = EconomyRules.subtractFromBalance(account.balance, amount);
         save();
     }
 

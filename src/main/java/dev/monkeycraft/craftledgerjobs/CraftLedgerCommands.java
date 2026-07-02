@@ -12,6 +12,7 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 public final class CraftLedgerCommands {
@@ -139,7 +140,8 @@ public final class CraftLedgerCommands {
             player.sendSystemMessage(TextUtil.error(result.message()));
             return 0;
         }
-        player.sendSystemMessage(TextUtil.success("Bought " + result.amount() + " " + item + " for " + ledger.common().format(result.total())));
+        String overflow = result.droppedItems() ? " Some items were dropped because your inventory was full." : "";
+        player.sendSystemMessage(TextUtil.success("Bought " + result.amount() + " " + item + " for " + ledger.common().format(result.total()) + overflow));
         return 1;
     }
 
@@ -154,7 +156,7 @@ public final class CraftLedgerCommands {
             player.sendSystemMessage(TextUtil.error("Unknown job: " + job));
             return 0;
         }
-        player.sendSystemMessage(TextUtil.success("Joined job: " + job.toLowerCase()));
+        player.sendSystemMessage(TextUtil.success("Joined job: " + job.toLowerCase(Locale.ROOT)));
         return 1;
     }
 
