@@ -12,7 +12,10 @@ public record CommonConfig(
         String currencyName,
         String currencySymbol,
         String storageBackend,
-        String sqliteFile
+        String sqliteFile,
+        double maxBalance,
+        double maxPayAmount,
+        int payCooldownSeconds
 ) {
     public static final int CURRENT_VERSION = 1;
     public static final String STORAGE_JSON = "json";
@@ -29,6 +32,9 @@ public record CommonConfig(
                     currencySymbol = "$"
                     storageBackend = "json"
                     sqliteFile = "craftledger.sqlite"
+                    maxBalance = 0.0
+                    maxPayAmount = 0.0
+                    payCooldownSeconds = 0
                     """, StandardCharsets.UTF_8);
         }
 
@@ -39,6 +45,9 @@ public record CommonConfig(
         String currencySymbol = "$";
         String storageBackend = STORAGE_JSON;
         String sqliteFile = "craftledger.sqlite";
+        double maxBalance = 0.0D;
+        double maxPayAmount = 0.0D;
+        int payCooldownSeconds = 0;
         for (String rawLine : Files.readAllLines(path, StandardCharsets.UTF_8)) {
             String line = rawLine.split("#", 2)[0].trim();
             if (line.isEmpty() || !line.contains("=")) {
@@ -69,9 +78,19 @@ public record CommonConfig(
                 storageBackend = value.toLowerCase(java.util.Locale.ROOT);
             } else if ("sqliteFile".equals(key)) {
                 sqliteFile = value;
+            } else if ("maxBalance".equals(key)) {
+                maxBalance = parseDouble("common.toml maxBalance", value);
+            } else if ("maxPayAmount".equals(key)) {
+                maxPayAmount = parseDouble("common.toml maxPayAmount", value);
+            } else if ("payCooldownSeconds".equals(key)) {
+                try {
+                    payCooldownSeconds = Integer.parseInt(value);
+                } catch (NumberFormatException ex) {
+                    throw new ConfigValidationException("common.toml payCooldownSeconds must be a whole number: " + value);
+                }
             }
         }
-        CommonConfig config = new CommonConfig(configVersion, currencyEnabled, startingBalance, currencyName, currencySymbol, storageBackend, sqliteFile);
+        CommonConfig config = new CommonConfig(configVersion, currencyEnabled, startingBalance, currencyName, currencySymbol, storageBackend, sqliteFile, maxBalance, maxPayAmount, payCooldownSeconds);
         config.validate();
         return config;
     }
@@ -97,6 +116,14 @@ public record CommonConfig(
         throw new ConfigValidationException(label + " must be true or false.");
     }
 
+    private static double parseDouble(String label, String value) {
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException ex) {
+            throw new ConfigValidationException(label + " must be a number: " + value);
+        }
+    }
+
     private void validate() {
         if (!Double.isFinite(startingBalance) || startingBalance < 0) {
             throw new ConfigValidationException("common.toml startingBalance must be a finite number greater than or equal to 0.");
@@ -118,6 +145,15 @@ public record CommonConfig(
         }
         if (sqliteFile.contains("/") || sqliteFile.contains("\\") || sqliteFile.contains("..")) {
             throw new ConfigValidationException("common.toml sqliteFile must be a file name, not a path.");
+        }
+        if (!Double.isFinite(maxBalance) || maxBalance < 0) {
+            throw new ConfigValidationException("common.toml maxBalance must be finite and greater than or equal to 0.");
+        }
+        if (!Double.isFinite(maxPayAmount) || maxPayAmount < 0) {
+            throw new ConfigValidationException("common.toml maxPayAmount must be finite and greater than or equal to 0.");
+        }
+        if (payCooldownSeconds < 0) {
+            throw new ConfigValidationException("common.toml payCooldownSeconds must be greater than or equal to 0.");
         }
     }
 }

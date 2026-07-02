@@ -29,6 +29,9 @@ class CommonConfigTest {
         assertEquals("$", config.currencySymbol());
         assertEquals("json", config.storageBackend());
         assertEquals("craftledger.sqlite", config.sqliteFile());
+        assertEquals(0.0D, config.maxBalance());
+        assertEquals(0.0D, config.maxPayAmount());
+        assertEquals(0, config.payCooldownSeconds());
         assertEquals("$1,234.50 coins", config.format(1234.5D));
     }
 
@@ -43,6 +46,9 @@ class CommonConfigTest {
                 currencySymbol = "M$"
                 storageBackend = "sqlite"
                 sqliteFile = "ledger.sqlite"
+                maxBalance = 1000.0
+                maxPayAmount = 50.0
+                payCooldownSeconds = 3
                 """);
 
         CommonConfig config = CommonConfig.load(path);
@@ -53,6 +59,9 @@ class CommonConfigTest {
         assertEquals("M$", config.currencySymbol());
         assertEquals("sqlite", config.storageBackend());
         assertEquals("ledger.sqlite", config.sqliteFile());
+        assertEquals(1000.0D, config.maxBalance());
+        assertEquals(50.0D, config.maxPayAmount());
+        assertEquals(3, config.payCooldownSeconds());
         assertEquals("M$42.50 tokens", config.format(42.5D));
     }
 
@@ -137,6 +146,34 @@ class CommonConfigTest {
                 storageBackend = "sqlite"
                 sqliteFile = "../ledger.sqlite"
                 startingBalance = 1
+                currencyName = "coins"
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+    }
+
+    @Test
+    void loadRejectsInvalidEconomySafetyValues() throws Exception {
+        Path path = tempDir.resolve("common.toml");
+        Files.writeString(path, """
+                maxBalance = -1
+                currencyName = "coins"
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+
+        Files.writeString(path, """
+                maxPayAmount = nope
+                currencyName = "coins"
+                currencySymbol = "$"
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> CommonConfig.load(path));
+
+        Files.writeString(path, """
+                payCooldownSeconds = -1
                 currencyName = "coins"
                 currencySymbol = "$"
                 """);

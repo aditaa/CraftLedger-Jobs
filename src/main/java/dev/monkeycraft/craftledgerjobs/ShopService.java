@@ -39,7 +39,7 @@ public final class ShopService {
         if (!Double.isFinite(total)) {
             return SellResult.none("That sale total is too large.");
         }
-        if (!ledger.players().deposit(player, total)) {
+        if (!ledger.deposit(player, total)) {
             return SellResult.none("Your balance cannot receive that sale total.");
         }
         hand.shrink(count);
@@ -84,7 +84,7 @@ public final class ShopService {
             pendingSales.add(new PendingSale(slot));
         }
         if (total > 0) {
-            if (!ledger.players().deposit(player, total)) {
+            if (!ledger.deposit(player, total)) {
                 return SellResult.none("Your balance cannot receive that sale total.");
             }
             for (PendingSale pendingSale : pendingSales) {

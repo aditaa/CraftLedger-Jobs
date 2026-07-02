@@ -13,14 +13,21 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public final class CraftLedgerCommands {
+    private static final Map<UUID, Instant> LAST_PAYMENTS = new HashMap<>();
+
     private CraftLedgerCommands() {
     }
 
@@ -174,6 +181,13 @@ public final class CraftLedgerCommands {
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
                                         .executes(ctx -> adminJobClear(ctx.getSource(), StringArgumentType.getString(ctx, "player"), ledger)))))
+                .then(Commands.literal("storage")
+                        .requires(CraftLedgerPermissions::canAdmin)
+                        .then(Commands.literal("migrate")
+                                .then(Commands.literal("json-to-sqlite")
+                                        .executes(ctx -> migrateJsonToSqlite(ctx.getSource(), false, ledger))
+                                        .then(Commands.literal("dry-run")
+                                                .executes(ctx -> migrateJsonToSqlite(ctx.getSource(), true, ledger))))))
                 .then(Commands.literal("transactions")
                         .requires(CraftLedgerPermissions::canViewTransactions)
                         .then(Commands.literal("tail")
@@ -227,7 +241,21 @@ public final class CraftLedgerCommands {
             source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.self")));
             return 0;
         }
-        if (!ledger.players().canDeposit(target, amount)) {
+        if (ledger.common().maxPayAmount() > 0 && amount > ledger.common().maxPayAmount()) {
+            source.sendSystemMessage(TextUtil.error("Payments are capped at " + ledger.common().format(ledger.common().maxPayAmount()) + "."));
+            return 0;
+        }
+        int cooldownSeconds = ledger.common().payCooldownSeconds();
+        if (cooldownSeconds > 0) {
+            Instant now = Instant.now();
+            Instant lastPayment = LAST_PAYMENTS.get(source.getUUID());
+            if (lastPayment != null && Duration.between(lastPayment, now).getSeconds() < cooldownSeconds) {
+                long remaining = cooldownSeconds - Duration.between(lastPayment, now).getSeconds();
+                source.sendSystemMessage(TextUtil.error("Wait " + remaining + " second(s) before using /pay again."));
+                return 0;
+            }
+        }
+        if (!ledger.canDeposit(target, amount)) {
             source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.target_full")));
             return 0;
         }
@@ -235,10 +263,13 @@ public final class CraftLedgerCommands {
             source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.insufficient")));
             return 0;
         }
-        if (!ledger.players().deposit(target, amount)) {
-            ledger.players().deposit(source, amount);
+        if (!ledger.deposit(target, amount)) {
+            ledger.deposit(source, amount);
             source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.rollback_failed")));
             return 0;
+        }
+        if (cooldownSeconds > 0) {
+            LAST_PAYMENTS.put(source.getUUID(), Instant.now());
         }
         ledger.transactions().write("pay_send", source, amount, "to " + target.getGameProfile().getName());
         ledger.transactions().write("pay_receive", target, amount, "from " + source.getGameProfile().getName());
@@ -438,8 +469,16 @@ public final class CraftLedgerCommands {
 
     private static int updateBalance(CommandSourceStack source, PlayerStore.KnownPlayer player, double amount, String mode, Ledger ledger) {
         if ("set".equals(mode)) {
+            if (!ledger.canSetBalance(amount)) {
+                source.sendFailure(TextUtil.error(ledger.maxBalanceMessage()));
+                return 0;
+            }
             ledger.players().set(player.uuid(), player.name(), amount);
         } else if ("add".equals(mode)) {
+            if (!ledger.canAddBalance(player.uuid(), player.name(), amount)) {
+                source.sendFailure(TextUtil.error(ledger.maxBalanceMessage()));
+                return 0;
+            }
             ledger.players().add(player.uuid(), player.name(), amount);
         } else {
             ledger.players().take(player.uuid(), player.name(), amount);
@@ -509,6 +548,27 @@ public final class CraftLedgerCommands {
         return sendTransactionTail(source, entries, ledger);
     }
 
+    private static int migrateJsonToSqlite(CommandSourceStack source, boolean dryRun, Ledger ledger) {
+        if (!CommonConfig.STORAGE_JSON.equals(ledger.common().storageBackend())) {
+            source.sendFailure(TextUtil.error("JSON-to-SQLite migration can only run while storageBackend is \"json\"."));
+            return 0;
+        }
+        ledger.players().save();
+        if (ledger.jobPayouts() instanceof JobPayoutStore jsonPayouts) {
+            jsonPayouts.save();
+        }
+        try {
+            StorageMigrationService.MigrationResult result = new StorageMigrationService()
+                    .migrateJsonToSqlite(ledger.dataDir(), ledger.common().sqliteFile(), ledger.common().startingBalance(), dryRun);
+            source.sendSuccess(() -> TextUtil.success(result.summary()), true);
+            return 1;
+        } catch (IOException | RuntimeException ex) {
+            source.sendFailure(TextUtil.error("Storage migration failed: " + rootMessage(ex)));
+            CraftLedgerJobs.LOGGER.warn("CraftLedger storage migration failed", ex);
+            return 0;
+        }
+    }
+
     private static int transactionTail(CommandSourceStack source, String player, int lines, Ledger ledger) {
         List<String> entries = ledger.transactions().tail(player, lines);
         return sendTransactionTail(source, entries, ledger);
@@ -524,7 +584,7 @@ public final class CraftLedgerCommands {
     }
 
     private static int craftLedgerHelp(CommandSourceStack source) {
-        source.sendSuccess(() -> TextUtil.success("CraftLedger admin commands: reload, balance, player info, job set/clear, transactions tail"), false);
+        source.sendSuccess(() -> TextUtil.success("CraftLedger admin commands: reload, balance, player info, job set/clear, storage migrate, transactions tail"), false);
         return 1;
     }
 
