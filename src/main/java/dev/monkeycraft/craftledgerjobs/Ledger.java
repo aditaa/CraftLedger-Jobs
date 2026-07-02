@@ -51,9 +51,11 @@ public final class Ledger {
             CommonConfig reloadedCommon = CommonConfig.load(configDir.resolve("common.toml"));
             ShopConfig reloadedShop = ShopConfig.load(configDir.resolve("shop.json"));
             JobsConfig reloadedJobs = JobsConfig.load(configDir.resolve("jobs.json"));
+            MessagesConfig.ensureExists(configDir.resolve("messages.json"));
             commonConfig = reloadedCommon;
             shopConfig = reloadedShop;
             jobsConfig = reloadedJobs;
+            CraftLedgerJobs.LOGGER.info("CraftLedger Jobs config reloaded");
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to reload CraftLedger Jobs", ex);
         }

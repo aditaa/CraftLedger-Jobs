@@ -12,9 +12,11 @@ import java.util.Locale;
 
 public final class JobsService {
     private final Ledger ledger;
+    private final JobPayoutLimiter payoutLimiter;
 
     public JobsService(Ledger ledger) {
         this.ledger = ledger;
+        this.payoutLimiter = new JobPayoutLimiter();
     }
 
     public JoinResult join(ServerPlayer player, String jobId) {
@@ -94,6 +96,10 @@ public final class JobsService {
 
     private void pay(ServerPlayer player, Double payout, String type, String detail) {
         if (payout == null || !EconomyRules.isPositiveFinite(payout)) {
+            return;
+        }
+        String payoutKey = type + ":" + detail;
+        if (!payoutLimiter.allow(player.getUUID(), payoutKey, payout, ledger.jobsConfig())) {
             return;
         }
         ledger.players().deposit(player, payout);

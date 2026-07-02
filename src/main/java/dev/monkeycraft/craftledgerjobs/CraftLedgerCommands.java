@@ -27,7 +27,7 @@ public final class CraftLedgerCommands {
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
                 .executes(ctx -> balance(ctx.getSource().getPlayerOrException(), ledger))
                 .then(Commands.argument("player", EntityArgument.player())
-                        .requires(source -> source.hasPermission(2))
+                        .requires(CraftLedgerPermissions::canViewOtherBalances)
                         .executes(ctx -> balanceOther(ctx.getSource(), EntityArgument.getPlayer(ctx, "player"), ledger))));
 
         dispatcher.register(Commands.literal("money")
@@ -35,10 +35,10 @@ public final class CraftLedgerCommands {
                 .executes(ctx -> balance(ctx.getSource().getPlayerOrException(), ledger)));
 
         dispatcher.register(Commands.literal("baltop")
-                .requires(source -> source.getEntity() instanceof ServerPlayer)
-                .executes(ctx -> balanceTop(ctx.getSource().getPlayerOrException(), 1, ledger))
+                .requires(CraftLedgerPermissions::canViewBalanceTop)
+                .executes(ctx -> balanceTop(ctx.getSource(), 1, ledger))
                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
-                        .executes(ctx -> balanceTop(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "page"), ledger))));
+                        .executes(ctx -> balanceTop(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "page"), ledger))));
 
         dispatcher.register(Commands.literal("pay")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
@@ -104,7 +104,7 @@ public final class CraftLedgerCommands {
                                         .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), IntegerArgumentType.getInteger(ctx, "page"), ledger))))));
 
         dispatcher.register(Commands.literal("craftledger")
-                .requires(source -> source.hasPermission(2))
+                .requires(CraftLedgerPermissions::canAdmin)
                 .then(Commands.literal("reload")
                         .executes(ctx -> reload(ctx.getSource(), ledger)))
                 .then(Commands.literal("shop")
@@ -114,6 +114,10 @@ public final class CraftLedgerCommands {
                                 .then(Commands.literal("reload")
                                         .executes(ctx -> reload(ctx.getSource(), ledger))))
                 .then(Commands.literal("balance")
+                        .then(Commands.literal("top")
+                                .executes(ctx -> balanceTop(ctx.getSource(), 1, ledger))
+                                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> balanceTop(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "page"), ledger))))
                         .then(Commands.literal("get")
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
@@ -132,7 +136,13 @@ public final class CraftLedgerCommands {
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
                                         .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01D))
-                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "take", ledger)))))));
+                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "take", ledger))))))
+                .then(Commands.literal("transactions")
+                        .requires(CraftLedgerPermissions::canViewTransactions)
+                        .then(Commands.literal("tail")
+                                .executes(ctx -> transactionTail(ctx.getSource(), 10, ledger))
+                                .then(Commands.argument("lines", IntegerArgumentType.integer(1, 50))
+                                        .executes(ctx -> transactionTail(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "lines"), ledger))))));
     }
 
     private static int balance(ServerPlayer player, Ledger ledger) {
@@ -140,8 +150,8 @@ public final class CraftLedgerCommands {
         return 1;
     }
 
-    private static int balanceTop(ServerPlayer player, int page, Ledger ledger) {
-        player.sendSystemMessage(TextUtil.success(BalanceViews.topBalances(ledger.players().topBalances(), ledger.common(), page)));
+    private static int balanceTop(CommandSourceStack source, int page, Ledger ledger) {
+        source.sendSuccess(() -> TextUtil.success(BalanceViews.topBalances(ledger.players().topBalances(), ledger.common(), page)), false);
         return 1;
     }
 
@@ -297,6 +307,16 @@ public final class CraftLedgerCommands {
         }
         ledger.transactions().write("admin_balance_" + mode, player.name(), player.uuid().toString(), amount, source.getTextName());
         source.sendSuccess(() -> TextUtil.success("Balance updated for " + player.name() + ": " + ledger.common().format(ledger.players().balance(player.uuid(), player.name()))), true);
+        return 1;
+    }
+
+    private static int transactionTail(CommandSourceStack source, int lines, Ledger ledger) {
+        List<String> entries = ledger.transactions().tail(lines);
+        if (entries.isEmpty()) {
+            source.sendSuccess(() -> TextUtil.success("No transactions logged."), false);
+            return 1;
+        }
+        source.sendSuccess(() -> TextUtil.success("Recent transactions:\n" + String.join("\n", entries)), false);
         return 1;
     }
 

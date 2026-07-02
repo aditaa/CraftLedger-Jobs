@@ -9,6 +9,7 @@ import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.server.permission.events.PermissionGatherEvent;
 import org.slf4j.Logger;
 
 @Mod(CraftLedgerJobs.MOD_ID)
@@ -35,6 +36,11 @@ public final class CraftLedgerJobs {
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
         CraftLedgerCommands.register(event.getDispatcher(), ledger);
+    }
+
+    @SubscribeEvent
+    public void onRegisterPermissionNodes(PermissionGatherEvent.Nodes event) {
+        CraftLedgerPermissions.register(event);
     }
 
     @SubscribeEvent

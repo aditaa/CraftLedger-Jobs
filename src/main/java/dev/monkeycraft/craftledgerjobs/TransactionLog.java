@@ -8,8 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
+import java.util.List;
 
 public final class TransactionLog {
+    private static final int MAX_TAIL_LINES = 50;
     private final Path path;
 
     public TransactionLog(Path path) throws IOException {
@@ -32,6 +34,17 @@ public final class TransactionLog {
             Files.writeString(path, line, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
         } catch (IOException ex) {
             CraftLedgerJobs.LOGGER.error("Failed to write CraftLedger transaction log", ex);
+        }
+    }
+
+    public List<String> tail(int requestedLines) {
+        int lines = Math.max(1, Math.min(MAX_TAIL_LINES, requestedLines));
+        try {
+            List<String> allLines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            return allLines.subList(Math.max(0, allLines.size() - lines), allLines.size());
+        } catch (IOException ex) {
+            CraftLedgerJobs.LOGGER.error("Failed to read CraftLedger transaction log", ex);
+            return List.of();
         }
     }
 

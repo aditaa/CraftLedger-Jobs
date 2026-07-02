@@ -66,7 +66,9 @@ Use a Forge 1.20.1 dedicated server with Forge 47.4.10.
 12. Run `/job join miner`, break a configured ore, and confirm payout.
 13. Run `/craftledger reload` as an operator.
 14. Run `/craftledger balance get <player>` as an operator.
-15. Stop and restart the server, then confirm balances persisted.
+15. Run `/craftledger balance top` and `/craftledger transactions tail 5` as an operator.
+16. Temporarily set `payoutCooldownSeconds` in `jobs.json`, reload, and confirm repeated job actions do not spam payouts.
+17. Stop and restart the server, then confirm balances persisted.
 
 ## Pre-Release Standard
 
