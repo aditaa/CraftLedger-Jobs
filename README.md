@@ -64,10 +64,11 @@ Player commands:
 - `/shop list [page]`
 - `/shop sell [page]`
 - `/shop buy <item> [amount]`
-- `/jobs`
+- `/jobs [page]`
 - `/job join <job>`
+- `/job current`
 - `/job leave`
-- `/job info [job]`
+- `/job info [job] [page]`
 
 Operator commands:
 

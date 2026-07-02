@@ -66,7 +66,9 @@ public final class CraftLedgerCommands {
 
         dispatcher.register(Commands.literal("jobs")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
-                .executes(ctx -> jobs(ctx.getSource().getPlayerOrException(), ledger)));
+                .executes(ctx -> jobs(ctx.getSource().getPlayerOrException(), 1, ledger))
+                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                        .executes(ctx -> jobs(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "page"), ledger))));
 
         dispatcher.register(Commands.literal("job")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
@@ -74,13 +76,17 @@ public final class CraftLedgerCommands {
                         .then(Commands.argument("job", StringArgumentType.word())
                                 .suggests((ctx, builder) -> suggestJobs(ledger, builder))
                                 .executes(ctx -> jobJoin(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), ledger))))
+                .then(Commands.literal("current")
+                        .executes(ctx -> jobCurrent(ctx.getSource().getPlayerOrException(), ledger)))
                 .then(Commands.literal("leave")
                         .executes(ctx -> jobLeave(ctx.getSource().getPlayerOrException(), ledger)))
                 .then(Commands.literal("info")
                         .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), ledger.players().job(ctx.getSource().getPlayerOrException()), ledger))
                         .then(Commands.argument("job", StringArgumentType.word())
                                 .suggests((ctx, builder) -> suggestJobs(ledger, builder))
-                                .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), ledger)))));
+                                .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), 1, ledger))
+                                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), IntegerArgumentType.getInteger(ctx, "page"), ledger))))));
 
         dispatcher.register(Commands.literal("craftledger")
                 .requires(source -> source.hasPermission(2))
@@ -174,18 +180,33 @@ public final class CraftLedgerCommands {
         return 1;
     }
 
-    private static int jobs(ServerPlayer player, Ledger ledger) {
+    private static int jobs(ServerPlayer player, int page, Ledger ledger) {
         String current = ledger.players().job(player);
-        player.sendSystemMessage(TextUtil.success(ledger.jobs().listJobs() + "\nCurrent job: " + (current == null ? "none" : current)));
+        player.sendSystemMessage(TextUtil.success(ledger.jobs().listJobs(current, page)));
         return 1;
     }
 
     private static int jobJoin(ServerPlayer player, String job, Ledger ledger) {
-        if (!ledger.jobs().join(player, job)) {
+        JobsService.JoinResult result = ledger.jobs().join(player, job);
+        if (result == JobsService.JoinResult.UNKNOWN_JOB) {
             player.sendSystemMessage(TextUtil.error("Unknown job: " + job));
             return 0;
         }
+        if (result == JobsService.JoinResult.ALREADY_IN_JOB) {
+            player.sendSystemMessage(TextUtil.error("You already have that job."));
+            return 0;
+        }
+        if (result == JobsService.JoinResult.SWITCHING_DISABLED) {
+            player.sendSystemMessage(TextUtil.error("Leave your current job before joining another one."));
+            return 0;
+        }
         player.sendSystemMessage(TextUtil.success("Joined job: " + job.toLowerCase(Locale.ROOT)));
+        return 1;
+    }
+
+    private static int jobCurrent(ServerPlayer player, Ledger ledger) {
+        String current = ledger.players().job(player);
+        player.sendSystemMessage(TextUtil.success("Current job: " + (current == null ? "none" : current)));
         return 1;
     }
 
@@ -196,11 +217,15 @@ public final class CraftLedgerCommands {
     }
 
     private static int jobInfo(ServerPlayer player, String job, Ledger ledger) {
+        return jobInfo(player, job, 1, ledger);
+    }
+
+    private static int jobInfo(ServerPlayer player, String job, int page, Ledger ledger) {
         if (job == null || job.isBlank()) {
             player.sendSystemMessage(TextUtil.error("You have not joined a job."));
             return 0;
         }
-        player.sendSystemMessage(TextUtil.success(ledger.jobs().info(job)));
+        player.sendSystemMessage(TextUtil.success(ledger.jobs().info(job, page)));
         return 1;
     }
 

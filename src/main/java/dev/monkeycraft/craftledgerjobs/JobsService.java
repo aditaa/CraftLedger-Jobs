@@ -4,11 +4,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.CropBlock;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.level.BlockEvent;
 
 import java.util.Locale;
-import java.util.Map;
 
 public final class JobsService {
     private final Ledger ledger;
@@ -17,14 +17,21 @@ public final class JobsService {
         this.ledger = ledger;
     }
 
-    public boolean join(ServerPlayer player, String jobId) {
+    public JoinResult join(ServerPlayer player, String jobId) {
         String normalized = jobId.toLowerCase(Locale.ROOT);
         if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
-            return false;
+            return JoinResult.UNKNOWN_JOB;
+        }
+        String currentJob = ledger.players().job(player);
+        if (normalized.equals(currentJob)) {
+            return JoinResult.ALREADY_IN_JOB;
+        }
+        if (currentJob != null && !ledger.jobsConfig().allowSwitching) {
+            return JoinResult.SWITCHING_DISABLED;
         }
         ledger.players().setJob(player, normalized);
         ledger.transactions().write("job_join", player, 0, normalized);
-        return true;
+        return JoinResult.SUCCESS;
     }
 
     public void leave(ServerPlayer player) {
@@ -33,29 +40,16 @@ public final class JobsService {
         ledger.transactions().write("job_leave", player, 0, oldJob == null ? "" : oldJob);
     }
 
-    public String listJobs() {
-        if (ledger.jobsConfig().jobs.isEmpty()) {
-            return "No jobs configured.";
-        }
-        StringBuilder builder = new StringBuilder("Jobs:");
-        for (Map.Entry<String, JobsConfig.JobDefinition> entry : ledger.jobsConfig().jobs.entrySet()) {
-            builder.append("\n").append(entry.getKey()).append(" - ").append(entry.getValue().displayName);
-        }
-        return builder.toString();
+    public String listJobs(String currentJob, int page) {
+        return JobViews.list(ledger.jobsConfig(), currentJob, page);
+    }
+
+    public String info(String jobId, int page) {
+        return JobViews.info(ledger.jobsConfig(), ledger.common(), jobId, page);
     }
 
     public String info(String jobId) {
-        JobsConfig.JobDefinition job = ledger.jobsConfig().jobs.get(jobId.toLowerCase(Locale.ROOT));
-        if (job == null) {
-            return "Unknown job: " + jobId;
-        }
-        if (job.blockBreak.isEmpty() && job.entityKill.isEmpty()) {
-            return job.displayName + " has no payouts configured.";
-        }
-        StringBuilder builder = new StringBuilder(job.displayName).append(" payouts:");
-        job.blockBreak.forEach((id, amount) -> builder.append("\nBreak ").append(id).append(": ").append(ledger.common().format(amount)));
-        job.entityKill.forEach((id, amount) -> builder.append("\nKill ").append(id).append(": ").append(ledger.common().format(amount)));
-        return builder.toString();
+        return info(jobId, 1);
     }
 
     public void handleBlockBreak(BlockEvent.BreakEvent event) {
@@ -71,6 +65,9 @@ public final class JobsService {
             return;
         }
         ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock());
+        if (event.getState().getBlock() instanceof CropBlock crop && !crop.isMaxAge(event.getState())) {
+            return;
+        }
         Double payout = job.blockBreak.get(blockId.toString());
         pay(player, payout, "job_block_break", blockId.toString());
     }
@@ -96,11 +93,20 @@ public final class JobsService {
     }
 
     private void pay(ServerPlayer player, Double payout, String type, String detail) {
-        if (payout == null || payout <= 0) {
+        if (payout == null || !EconomyRules.isPositiveFinite(payout)) {
             return;
         }
         ledger.players().deposit(player, payout);
         ledger.transactions().write(type, player, payout, detail);
-        player.sendSystemMessage(TextUtil.success("Job payout: " + ledger.common().format(payout)));
+        if (ledger.jobsConfig().notifyPayouts) {
+            player.sendSystemMessage(TextUtil.success("Job payout: " + ledger.common().format(payout)));
+        }
+    }
+
+    public enum JoinResult {
+        SUCCESS,
+        UNKNOWN_JOB,
+        ALREADY_IN_JOB,
+        SWITCHING_DISABLED
     }
 }
