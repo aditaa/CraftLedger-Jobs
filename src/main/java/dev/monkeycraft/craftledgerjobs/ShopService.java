@@ -76,17 +76,19 @@ public final class ShopService {
             return BuyResult.insufficientFunds(total);
         }
 
+        boolean droppedItems = false;
         int remaining = clampedAmount;
         while (remaining > 0) {
             int count = Math.min(maxStack, remaining);
             ItemStack stack = new ItemStack(item, count);
             if (!player.getInventory().add(stack)) {
                 player.drop(stack, false);
+                droppedItems = true;
             }
             remaining -= count;
         }
         ledger.transactions().write("shop_buy", player, total, itemId + " x" + clampedAmount);
-        return BuyResult.success(total, clampedAmount);
+        return BuyResult.success(total, clampedAmount, droppedItems);
     }
 
     public String list(CommonConfig common) {
@@ -104,21 +106,21 @@ public final class ShopService {
         return BuiltInRegistries.ITEM.getKey(item).toString();
     }
 
-    public record BuyResult(boolean success, String message, double total, int amount) {
-        static BuyResult success(double total, int amount) {
-            return new BuyResult(true, "ok", total, amount);
+    public record BuyResult(boolean success, String message, double total, int amount, boolean droppedItems) {
+        static BuyResult success(double total, int amount, boolean droppedItems) {
+            return new BuyResult(true, "ok", total, amount, droppedItems);
         }
 
         static BuyResult notForSale() {
-            return new BuyResult(false, "That item is not for sale.", 0, 0);
+            return new BuyResult(false, "That item is not for sale.", 0, 0, false);
         }
 
         static BuyResult invalidItem() {
-            return new BuyResult(false, "That configured item id is invalid.", 0, 0);
+            return new BuyResult(false, "That configured item id is invalid.", 0, 0, false);
         }
 
         static BuyResult insufficientFunds(double total) {
-            return new BuyResult(false, "You need more money for that purchase.", total, 0);
+            return new BuyResult(false, "You need more money for that purchase.", total, 0, false);
         }
     }
 }

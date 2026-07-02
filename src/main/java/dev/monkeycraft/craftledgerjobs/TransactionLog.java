@@ -26,12 +26,20 @@ public final class TransactionLog {
 
     public void write(String type, String playerName, String playerUuid, double amount, String detail) {
         String line = "%s\t%s\t%s\t%s\t%.2f\t%s%n".formatted(
-                Instant.now(), type, playerName, playerUuid, amount, detail == null ? "" : detail
+                Instant.now(), clean(type), clean(playerName), clean(playerUuid), cleanAmount(amount), clean(detail)
         );
         try {
             Files.writeString(path, line, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
         } catch (IOException ex) {
             CraftLedgerJobs.LOGGER.error("Failed to write CraftLedger transaction log", ex);
         }
+    }
+
+    private static String clean(String value) {
+        return value == null ? "" : value.replace('\t', ' ').replace('\r', ' ').replace('\n', ' ');
+    }
+
+    private static double cleanAmount(double amount) {
+        return Double.isFinite(amount) ? amount : 0;
     }
 }
