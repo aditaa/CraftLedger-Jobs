@@ -56,11 +56,13 @@ Dedicated server testing is still required before release. See [Testing](docs/TE
 Player commands:
 
 - `/balance`
+- `/balance <player>` for operators
 - `/money`
 - `/pay <player> <amount>`
 - `/sell hand`
 - `/sell all`
-- `/shop list`
+- `/shop list [page]`
+- `/shop sell [page]`
 - `/shop buy <item> [amount]`
 - `/jobs`
 - `/job join <job>`
@@ -70,11 +72,14 @@ Player commands:
 Operator commands:
 
 - `/craftledger reload`
+- `/craftledger balance get <player>`
 - `/craftledger balance set <player> <amount>`
 - `/craftledger balance add <player> <amount>`
 - `/craftledger balance take <player> <amount>`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
+
+Offline admin balance commands can target players by last known name or UUID after they have joined the server at least once.
 
 ## Server Files
 

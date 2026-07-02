@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public final class PlayerStore {
@@ -60,6 +62,10 @@ public final class PlayerStore {
         return get(player).balance;
     }
 
+    public double balance(UUID uuid, String name) {
+        return get(uuid, name).balance;
+    }
+
     public boolean withdraw(ServerPlayer player, double amount) {
         PlayerAccount account = get(player);
         if (!EconomyRules.canWithdraw(account.balance, amount)) {
@@ -97,6 +103,38 @@ public final class PlayerStore {
         save();
     }
 
+    public Optional<KnownPlayer> findKnownPlayer(String nameOrUuid) {
+        if (nameOrUuid == null || nameOrUuid.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            UUID uuid = UUID.fromString(nameOrUuid);
+            PlayerAccount account = players.get(uuid.toString());
+            if (account != null) {
+                return Optional.of(new KnownPlayer(uuid, displayName(account, uuid.toString())));
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Not a UUID; fall through to last-known-name lookup.
+        }
+
+        for (Map.Entry<String, PlayerAccount> entry : players.entrySet()) {
+            PlayerAccount account = entry.getValue();
+            if (account.lastKnownName != null && account.lastKnownName.equalsIgnoreCase(nameOrUuid)) {
+                return Optional.of(new KnownPlayer(UUID.fromString(entry.getKey()), displayName(account, nameOrUuid)));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public List<String> knownPlayerNames() {
+        return players.values().stream()
+                .map(account -> account.lastKnownName)
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
     public void setJob(ServerPlayer player, String job) {
         PlayerAccount account = get(player);
         account.job = job;
@@ -128,6 +166,13 @@ public final class PlayerStore {
         public boolean initialized;
     }
 
+    public record KnownPlayer(UUID uuid, String name) {
+    }
+
     private record PlayerFile(Map<String, PlayerAccount> players) {
+    }
+
+    private static String displayName(PlayerAccount account, String fallback) {
+        return account.lastKnownName == null || account.lastKnownName.isBlank() ? fallback : account.lastKnownName;
     }
 }

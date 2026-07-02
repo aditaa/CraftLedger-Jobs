@@ -5,6 +5,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,5 +65,29 @@ class PlayerStoreTest {
 
         store.take(uuid, "Ada", 200.0D);
         assertEquals(0.0D, store.get(uuid, "Ada").balance);
+    }
+
+    @Test
+    void findsKnownPlayersByNameCaseInsensitivelyOrUuid() throws Exception {
+        PlayerStore store = PlayerStore.load(tempDir.resolve("players.json"), 10.0D);
+        UUID uuid = UUID.randomUUID();
+        store.get(uuid, "Ada");
+
+        assertEquals(uuid, store.findKnownPlayer("ada").orElseThrow().uuid());
+        assertEquals(uuid, store.findKnownPlayer(uuid.toString()).orElseThrow().uuid());
+        assertTrue(store.findKnownPlayer("missing").isEmpty());
+    }
+
+    @Test
+    void knownPlayerNamesAreSortedAndUnique() throws Exception {
+        PlayerStore store = PlayerStore.load(tempDir.resolve("players.json"), 10.0D);
+        UUID adaOne = UUID.randomUUID();
+        UUID adaTwo = UUID.randomUUID();
+        UUID bert = UUID.randomUUID();
+        store.get(bert, "Bert");
+        store.get(adaOne, "Ada");
+        store.get(adaTwo, "Ada");
+
+        assertEquals(List.of("Ada", "Bert"), store.knownPlayerNames());
     }
 }
