@@ -105,6 +105,11 @@ public final class CraftLedgerCommands {
                                 .executes(ctx -> jobJoin(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), ledger))))
                 .then(Commands.literal("current")
                         .executes(ctx -> jobCurrent(ctx.getSource().getPlayerOrException(), ledger)))
+                .then(Commands.literal("progress")
+                        .executes(ctx -> jobProgress(ctx.getSource().getPlayerOrException(), ledger.players().job(ctx.getSource().getPlayerOrException()), ledger))
+                        .then(Commands.argument("job", StringArgumentType.word())
+                                .suggests((ctx, builder) -> suggestJobs(ledger, builder))
+                                .executes(ctx -> jobProgress(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), ledger))))
                 .then(Commands.literal("leave")
                         .executes(ctx -> jobLeave(ctx.getSource().getPlayerOrException(), ledger)))
                 .then(Commands.literal("info")
@@ -180,7 +185,21 @@ public final class CraftLedgerCommands {
                         .then(Commands.literal("clear")
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
-                                        .executes(ctx -> adminJobClear(ctx.getSource(), StringArgumentType.getString(ctx, "player"), ledger)))))
+                                        .executes(ctx -> adminJobClear(ctx.getSource(), StringArgumentType.getString(ctx, "player"), ledger))))
+                        .then(Commands.literal("level")
+                                .then(Commands.literal("set")
+                                        .then(Commands.argument("player", StringArgumentType.word())
+                                                .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
+                                                .then(Commands.argument("job", StringArgumentType.word())
+                                                        .suggests((ctx, builder) -> suggestJobs(ledger, builder))
+                                                        .then(Commands.argument("level", IntegerArgumentType.integer(1))
+                                                                .executes(ctx -> adminJobLevelSet(ctx.getSource(), StringArgumentType.getString(ctx, "player"), StringArgumentType.getString(ctx, "job"), IntegerArgumentType.getInteger(ctx, "level"), ledger))))))
+                                .then(Commands.literal("reset")
+                                        .then(Commands.argument("player", StringArgumentType.word())
+                                                .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
+                                                .then(Commands.argument("job", StringArgumentType.word())
+                                                        .suggests((ctx, builder) -> suggestJobs(ledger, builder))
+                                                        .executes(ctx -> adminJobLevelReset(ctx.getSource(), StringArgumentType.getString(ctx, "player"), StringArgumentType.getString(ctx, "job"), ledger)))))))
                 .then(Commands.literal("storage")
                         .requires(CraftLedgerPermissions::canAdmin)
                         .then(Commands.literal("migrate")
@@ -381,7 +400,35 @@ public final class CraftLedgerCommands {
             return 0;
         }
         String current = ledger.players().job(player);
-        player.sendSystemMessage(TextUtil.success(msg(ledger, "job.current", "job", current == null ? "none" : current)));
+        if (current == null) {
+            player.sendSystemMessage(TextUtil.success(msg(ledger, "job.current", "job", "none")));
+        } else {
+            PlayerStore.JobProgress progress = ledger.players().jobProgress(player, current);
+            player.sendSystemMessage(TextUtil.success(msg(ledger, "job.current", "job", current)
+                    + " (level " + progress.level() + ", " + String.format(Locale.ROOT, "%.1f", progress.xp()) + " XP)"));
+        }
+        return 1;
+    }
+
+    private static int jobProgress(ServerPlayer player, String job, Ledger ledger) {
+        if (!ledger.jobsConfig().enabled) {
+            player.sendSystemMessage(TextUtil.error(msg(ledger, "jobs.disabled")));
+            return 0;
+        }
+        if (job == null || job.isBlank()) {
+            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.none")));
+            return 0;
+        }
+        String normalized = job.toLowerCase(Locale.ROOT);
+        if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
+            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            return 0;
+        }
+        PlayerStore.JobProgress progress = ledger.players().jobProgress(player, normalized);
+        double required = progress.level() >= ledger.jobsConfig().maxJobLevel ? 0 : JobProgression.requiredXpForNextLevel(progress.level(), ledger.jobsConfig());
+        String next = required <= 0 ? "max level" : String.format(Locale.ROOT, "%.1f/%.1f XP", progress.xp(), required);
+        player.sendSystemMessage(TextUtil.success(normalized + " progress: level " + progress.level() + ", " + next
+                + ", payout multiplier x" + String.format(Locale.ROOT, "%.2f", JobProgression.multiplier(progress.level(), ledger.jobsConfig()))));
         return 1;
     }
 
@@ -540,6 +587,43 @@ public final class CraftLedgerCommands {
         ledger.players().clearJob(player.uuid(), player.name());
         ledger.transactions().write("admin_job_clear", player.name(), player.uuid().toString(), 0, source.getTextName());
         source.sendSuccess(() -> TextUtil.success(msg(ledger, "admin.job_cleared", "player", player.name())), true);
+        return 1;
+    }
+
+    private static int adminJobLevelSet(CommandSourceStack source, String playerTarget, String job, int level, Ledger ledger) {
+        Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
+        if (target.isEmpty()) {
+            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            return 0;
+        }
+        String normalized = job.toLowerCase(Locale.ROOT);
+        if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
+            source.sendFailure(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            return 0;
+        }
+        int clampedLevel = Math.min(Math.max(1, level), ledger.jobsConfig().maxJobLevel);
+        PlayerStore.KnownPlayer player = target.get();
+        ledger.players().setJobProgress(player.uuid(), player.name(), normalized, clampedLevel, 0.0D);
+        ledger.transactions().write("admin_job_level_set", player.name(), player.uuid().toString(), 0, source.getTextName() + " -> " + normalized + " level " + clampedLevel);
+        source.sendSuccess(() -> TextUtil.success("Set " + player.name() + "'s " + normalized + " level to " + clampedLevel + "."), true);
+        return 1;
+    }
+
+    private static int adminJobLevelReset(CommandSourceStack source, String playerTarget, String job, Ledger ledger) {
+        Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
+        if (target.isEmpty()) {
+            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            return 0;
+        }
+        String normalized = job.toLowerCase(Locale.ROOT);
+        if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
+            source.sendFailure(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            return 0;
+        }
+        PlayerStore.KnownPlayer player = target.get();
+        ledger.players().resetJobProgress(player.uuid(), player.name(), normalized);
+        ledger.transactions().write("admin_job_level_reset", player.name(), player.uuid().toString(), 0, source.getTextName() + " -> " + normalized);
+        source.sendSuccess(() -> TextUtil.success("Reset " + player.name() + "'s " + normalized + " progress."), true);
         return 1;
     }
 

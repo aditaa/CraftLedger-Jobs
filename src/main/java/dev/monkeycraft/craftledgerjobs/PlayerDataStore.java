@@ -45,5 +45,15 @@ public interface PlayerDataStore {
 
     String job(UUID uuid, String name);
 
+    PlayerStore.JobProgress jobProgress(ServerPlayer player, String job);
+
+    PlayerStore.JobProgress jobProgress(UUID uuid, String name, String job);
+
+    PlayerStore.JobProgress addJobExperience(ServerPlayer player, String job, double amount, JobsConfig config);
+
+    void setJobProgress(UUID uuid, String name, String job, int level, double xp);
+
+    void resetJobProgress(UUID uuid, String name, String job);
+
     void save();
 }

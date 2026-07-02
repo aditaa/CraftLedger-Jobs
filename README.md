@@ -72,6 +72,7 @@ Player commands:
 - `/jobs [page]`
 - `/job join <job>`
 - `/job current`
+- `/job progress [job]`
 - `/job leave`
 - `/job info [job] [page]`
 
@@ -86,6 +87,8 @@ Operator commands:
 - `/craftledger player info <player>`
 - `/craftledger job set <player> <job>`
 - `/craftledger job clear <player>`
+- `/craftledger job level set <player> <job> <level>`
+- `/craftledger job level reset <player> <job>`
 - `/craftledger storage migrate json-to-sqlite [dry-run]`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`

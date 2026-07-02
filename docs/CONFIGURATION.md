@@ -56,6 +56,12 @@ Controls jobs and event payouts.
   "notifyPayouts": true,
   "trackPlacedBlocks": true,
   "maxTrackedPlacedBlocks": 50000,
+  "progressionEnabled": true,
+  "maxJobLevel": 100,
+  "baseJobXpRequired": 100.0,
+  "jobXpGrowth": 1.25,
+  "jobXpPerPayout": 10.0,
+  "payoutMultiplierPerLevel": 0.02,
   "payoutCooldownSeconds": 0,
   "dailyPayoutLimit": 0,
   "jobs": {
@@ -78,6 +84,8 @@ Controls jobs and event payouts.
 `blockBreak` and `entityKill` are currency payouts. `blockBreakXp` and `entityKillXp` are XP payouts. Configure either payout type, or both, for the same action.
 
 `trackPlacedBlocks` blocks job payouts for player-placed blocks. This should stay enabled on public servers to prevent place-and-break payout farming. `maxTrackedPlacedBlocks` caps the persisted tracking set; older entries are evicted first.
+
+`progressionEnabled` turns job levels on or off. Each successful configured job payout grants `jobXpPerPayout` job XP. `baseJobXpRequired` is the XP required from level 1 to level 2, `jobXpGrowth` scales the requirement for later levels, `maxJobLevel` caps progression, and `payoutMultiplierPerLevel` increases currency and Minecraft XP payouts per level above 1.
 
 ## `messages.json`
 
@@ -130,6 +138,11 @@ Current validation rules:
 - `notifyPayouts` controls whether players receive chat messages for each job payout.
 - `trackPlacedBlocks` controls whether player-placed blocks are excluded from job payouts.
 - `maxTrackedPlacedBlocks` caps the placed-block tracking set and must be greater than or equal to `0`.
+- `progressionEnabled` controls whether job XP, levels, and level payout multipliers are active.
+- `maxJobLevel` must be greater than or equal to `1`.
+- `baseJobXpRequired` must be finite and greater than `0`.
+- `jobXpGrowth` must be finite and greater than or equal to `1`.
+- `jobXpPerPayout` and `payoutMultiplierPerLevel` must be finite and greater than or equal to `0`.
 - `payoutCooldownSeconds` blocks repeated payouts for the same player and same configured payout id inside the cooldown window. `0` disables the cooldown.
 - `dailyPayoutLimit` caps each player's total job payout earnings per UTC day. `0` disables the cap.
 - Job ids may contain lowercase letters, numbers, underscores, and hyphens.

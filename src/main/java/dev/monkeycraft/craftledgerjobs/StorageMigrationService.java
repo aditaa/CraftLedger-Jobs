@@ -77,6 +77,12 @@ public final class StorageMigrationService {
                 continue;
             }
             sqlite.importPlayer(uuid, account.lastKnownName, account.balance, account.job, account.initialized);
+            if (account.jobLevels != null) {
+                for (Map.Entry<String, Integer> progress : account.jobLevels.entrySet()) {
+                    double xp = account.jobExperience == null ? 0.0D : account.jobExperience.getOrDefault(progress.getKey(), 0.0D);
+                    sqlite.importJobProgress(uuid, progress.getKey(), progress.getValue(), xp);
+                }
+            }
         }
     }
 

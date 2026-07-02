@@ -18,6 +18,12 @@ public final class JobsConfig {
     public boolean notifyPayouts = true;
     public boolean trackPlacedBlocks = true;
     public int maxTrackedPlacedBlocks = 50000;
+    public boolean progressionEnabled = true;
+    public int maxJobLevel = 100;
+    public double baseJobXpRequired = 100.0D;
+    public double jobXpGrowth = 1.25D;
+    public double jobXpPerPayout = 10.0D;
+    public double payoutMultiplierPerLevel = 0.02D;
     public int payoutCooldownSeconds = 0;
     public double dailyPayoutLimit = 0;
     public Map<String, JobDefinition> jobs = new LinkedHashMap<>();
@@ -57,6 +63,16 @@ public final class JobsConfig {
         if (!Double.isFinite(dailyPayoutLimit) || dailyPayoutLimit < 0) {
             throw new ConfigValidationException("jobs.json dailyPayoutLimit must be a finite number greater than or equal to 0.");
         }
+        if (maxJobLevel < 1) {
+            throw new ConfigValidationException("jobs.json maxJobLevel must be greater than or equal to 1.");
+        }
+        validateNonNegativeFinite("baseJobXpRequired", baseJobXpRequired, false);
+        validateNonNegativeFinite("jobXpGrowth", jobXpGrowth, false);
+        validateNonNegativeFinite("jobXpPerPayout", jobXpPerPayout, true);
+        validateNonNegativeFinite("payoutMultiplierPerLevel", payoutMultiplierPerLevel, true);
+        if (jobXpGrowth < 1.0D) {
+            throw new ConfigValidationException("jobs.json jobXpGrowth must be greater than or equal to 1.");
+        }
         jobs.forEach((jobId, job) -> {
             if (jobId == null || !SIMPLE_ID.matcher(jobId).matches()) {
                 throw new ConfigValidationException("jobs.json contains invalid job id: " + jobId);
@@ -69,6 +85,13 @@ public final class JobsConfig {
             job.blockBreakXp.forEach((blockId, xp) -> validateXpPayout("blockBreakXp", jobId, blockId, xp));
             job.entityKillXp.forEach((entityId, xp) -> validateXpPayout("entityKillXp", jobId, entityId, xp));
         });
+    }
+
+    private static void validateNonNegativeFinite(String key, double value, boolean allowZero) {
+        if (!Double.isFinite(value) || value < 0 || (!allowZero && value <= 0)) {
+            String suffix = allowZero ? "greater than or equal to 0." : "greater than 0.";
+            throw new ConfigValidationException("jobs.json " + key + " must be a finite number " + suffix);
+        }
     }
 
     private static void validatePayout(String section, String jobId, String resourceId, double payout) {

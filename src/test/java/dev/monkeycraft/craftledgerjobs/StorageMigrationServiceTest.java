@@ -47,6 +47,7 @@ class StorageMigrationServiceTest {
         try (SqliteLedgerStore sqlite = SqliteLedgerStore.load(tempDir.resolve("craftledger.sqlite"), 0.0D)) {
             assertEquals(250.0D, sqlite.balance(uuid, "Ignored"));
             assertEquals("miner", sqlite.job(uuid, "Ada"));
+            assertEquals(new PlayerStore.JobProgress(3, 44.0D), sqlite.jobProgress(uuid, "Ada", "miner"));
             assertEquals(12.5D, sqlite.total(uuid, LocalDate.parse("2026-07-02")));
             assertTrue(sqlite.tail(1).get(0).startsWith("2026-07-02T12:00:00Z\tadmin_balance_set"));
         }
@@ -70,6 +71,12 @@ class StorageMigrationServiceTest {
                       "lastKnownName": "Ada",
                       "balance": 250.0,
                       "job": "miner",
+                      "jobLevels": {
+                        "miner": 3
+                      },
+                      "jobExperience": {
+                        "miner": 44.0
+                      },
                       "initialized": true
                     }
                   }

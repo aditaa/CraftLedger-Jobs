@@ -94,7 +94,7 @@ public final class JobsService {
                 && ledger.placedBlocks().consume(level, event.getPos())) {
             return;
         }
-        pay(player, currencyPayout, xpPayout, "job_block_break", detail);
+        pay(player, jobId, currencyPayout, xpPayout, "job_block_break", detail);
     }
 
     public void handleBlockPlace(BlockEvent.EntityPlaceEvent event) {
@@ -129,12 +129,15 @@ public final class JobsService {
         }
         ResourceLocation entityId = RegistryIds.entityTypeId(event.getEntity().getType());
         String detail = entityId.toString();
-        pay(player, job.entityKill.get(detail), job.entityKillXp.get(detail), "job_entity_kill", detail);
+        pay(player, jobId, job.entityKill.get(detail), job.entityKillXp.get(detail), "job_entity_kill", detail);
     }
 
-    private void pay(ServerPlayer player, Double currencyPayout, Integer xpPayout, String type, String detail) {
-        double currency = ledger.common().currencyEnabled() && currencyPayout != null && EconomyRules.isPositiveFinite(currencyPayout) ? currencyPayout : 0.0D;
-        int xp = xpPayout == null ? 0 : Math.max(0, xpPayout);
+    private void pay(ServerPlayer player, String jobId, Double currencyPayout, Integer xpPayout, String type, String detail) {
+        int level = ledger.players().jobProgress(player, jobId).level();
+        double multiplier = ledger.jobsConfig().progressionEnabled ? JobProgression.multiplier(level, ledger.jobsConfig()) : 1.0D;
+        double baseCurrency = ledger.common().currencyEnabled() && currencyPayout != null && EconomyRules.isPositiveFinite(currencyPayout) ? currencyPayout : 0.0D;
+        double currency = baseCurrency * multiplier;
+        int xp = xpPayout == null ? 0 : Math.max(0, (int) Math.round(xpPayout * multiplier));
         if (currency <= 0 && xp <= 0) {
             return;
         }
@@ -152,8 +155,9 @@ public final class JobsService {
             player.giveExperiencePoints(xp);
         }
         ledger.transactions().write(type, player, currency, detail + payoutDetail(currency, xp));
+        PlayerStore.JobProgress progress = awardProgress(player, jobId, currency, xp);
         if (ledger.jobsConfig().notifyPayouts) {
-            player.sendSystemMessage(TextUtil.success(ledger.messages().format("job.payout", "payout", payoutMessage(currency, xp))));
+            player.sendSystemMessage(TextUtil.success(ledger.messages().format("job.payout", "payout", payoutMessage(currency, xp) + progressMessage(jobId, progress))));
         }
     }
 
@@ -169,6 +173,25 @@ public final class JobsService {
             return ledger.common().format(currency);
         }
         return xp + " XP";
+    }
+
+    private PlayerStore.JobProgress awardProgress(ServerPlayer player, String jobId, double currency, int xp) {
+        if (!ledger.jobsConfig().progressionEnabled || ledger.jobsConfig().jobXpPerPayout <= 0) {
+            return ledger.players().jobProgress(player, jobId);
+        }
+        PlayerStore.JobProgress progress = ledger.players().addJobExperience(player, jobId, ledger.jobsConfig().jobXpPerPayout, ledger.jobsConfig());
+        if (progress.leveled()) {
+            ledger.transactions().write("job_level_up", player, 0, jobId + " level " + progress.level());
+        }
+        return progress;
+    }
+
+    private String progressMessage(String jobId, PlayerStore.JobProgress progress) {
+        if (!ledger.jobsConfig().progressionEnabled) {
+            return "";
+        }
+        String leveled = progress.leveled() ? ", " + jobId + " level " + progress.level() : "";
+        return " (job XP +" + String.format(java.util.Locale.ROOT, "%.1f", progress.gainedXp()) + leveled + ")";
     }
 
     private static String payoutDetail(double currency, int xp) {
