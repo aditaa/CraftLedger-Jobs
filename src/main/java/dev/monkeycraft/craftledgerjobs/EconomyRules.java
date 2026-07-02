@@ -20,6 +20,10 @@ final class EconomyRules {
         return Double.isFinite(next) ? next : balance;
     }
 
+    static boolean canAddToBalance(double balance, double amount) {
+        return isPositiveFinite(amount) && Double.isFinite(balance + amount);
+    }
+
     static double subtractFromBalance(double balance, double amount) {
         if (!isPositiveFinite(amount)) {
             return balance;

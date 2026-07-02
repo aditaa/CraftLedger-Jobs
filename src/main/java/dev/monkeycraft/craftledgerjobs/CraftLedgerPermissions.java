@@ -39,6 +39,10 @@ public final class CraftLedgerPermissions {
         return has(source, TRANSACTIONS);
     }
 
+    public static boolean canUseCraftLedgerRoot(CommandSourceStack source) {
+        return canAdmin(source) || canViewTransactions(source);
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static PermissionNode<Boolean> node(String name, String description, boolean requiresOp) {
         return new PermissionNode<>(

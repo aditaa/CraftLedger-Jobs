@@ -3,6 +3,7 @@ package dev.monkeycraft.craftledgerjobs;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +13,7 @@ import java.util.List;
 
 public final class TransactionLog {
     private static final int MAX_TAIL_LINES = 50;
+    private static final int TAIL_CHUNK_SIZE = 8192;
     private final Path path;
 
     public TransactionLog(Path path) throws IOException {
@@ -39,13 +41,62 @@ public final class TransactionLog {
 
     public List<String> tail(int requestedLines) {
         int lines = Math.max(1, Math.min(MAX_TAIL_LINES, requestedLines));
-        try {
-            List<String> allLines = Files.readAllLines(path, StandardCharsets.UTF_8);
+        try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
+            long position = file.length();
+            int newlineCount = 0;
+            byte[] buffer = new byte[0];
+
+            while (position > 0 && newlineCount <= lines) {
+                int chunkSize = (int) Math.min(TAIL_CHUNK_SIZE, position);
+                position -= chunkSize;
+                byte[] chunk = new byte[chunkSize];
+                file.seek(position);
+                file.readFully(chunk);
+                buffer = prepend(chunk, buffer);
+                newlineCount = countNewlines(buffer);
+            }
+
+            int start = startOffset(buffer, lines);
+            String text = new String(buffer, start, buffer.length - start, StandardCharsets.UTF_8).stripTrailing();
+            if (text.isBlank()) {
+                return List.of();
+            }
+            List<String> allLines = text.lines().toList();
             return allLines.subList(Math.max(0, allLines.size() - lines), allLines.size());
         } catch (IOException ex) {
             CraftLedgerJobs.LOGGER.error("Failed to read CraftLedger transaction log", ex);
             return List.of();
         }
+    }
+
+    private static byte[] prepend(byte[] prefix, byte[] suffix) {
+        byte[] combined = new byte[prefix.length + suffix.length];
+        System.arraycopy(prefix, 0, combined, 0, prefix.length);
+        System.arraycopy(suffix, 0, combined, prefix.length, suffix.length);
+        return combined;
+    }
+
+    private static int countNewlines(byte[] bytes) {
+        int count = 0;
+        for (byte value : bytes) {
+            if (value == '\n') {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int startOffset(byte[] bytes, int requestedLines) {
+        int newlines = 0;
+        for (int index = bytes.length - 1; index >= 0; index--) {
+            if (bytes[index] == '\n') {
+                newlines++;
+                if (newlines > requestedLines) {
+                    return index + 1;
+                }
+            }
+        }
+        return 0;
     }
 
     private static String clean(String value) {

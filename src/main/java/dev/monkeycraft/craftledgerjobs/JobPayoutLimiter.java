@@ -3,23 +3,22 @@ package dev.monkeycraft.craftledgerjobs;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 public final class JobPayoutLimiter {
     private final Clock clock;
+    private final JobPayoutStore payoutStore;
     private final Map<String, Instant> lastPayouts = new HashMap<>();
-    private final Map<UUID, DailyTotal> dailyTotals = new HashMap<>();
 
-    public JobPayoutLimiter() {
-        this(Clock.systemUTC());
+    public JobPayoutLimiter(JobPayoutStore payoutStore) {
+        this(Clock.systemUTC(), payoutStore);
     }
 
-    JobPayoutLimiter(Clock clock) {
+    JobPayoutLimiter(Clock clock, JobPayoutStore payoutStore) {
         this.clock = clock;
+        this.payoutStore = payoutStore;
     }
 
     public boolean allow(UUID playerUuid, String payoutKey, double payout, JobsConfig config) {
@@ -34,28 +33,12 @@ public final class JobPayoutLimiter {
         }
 
         double dailyLimit = config.dailyPayoutLimit;
-        if (dailyLimit > 0) {
-            LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
-            DailyTotal total = dailyTotals.compute(playerUuid, (ignored, existing) ->
-                    existing == null || !existing.date.equals(today) ? new DailyTotal(today, 0) : existing);
-            if (total.amount + payout > dailyLimit) {
-                return false;
-            }
-            total.amount += payout;
+        if (dailyLimit > 0 && !payoutStore.allowAndRecord(playerUuid, now, payout, dailyLimit)) {
+            return false;
         }
         if (cooldownSeconds > 0) {
             lastPayouts.put(playerUuid + "|" + payoutKey, now);
         }
         return true;
-    }
-
-    private static final class DailyTotal {
-        private final LocalDate date;
-        private double amount;
-
-        private DailyTotal(LocalDate date, double amount) {
-            this.date = date;
-            this.amount = amount;
-        }
     }
 }

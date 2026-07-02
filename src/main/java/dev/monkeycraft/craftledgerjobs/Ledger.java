@@ -13,6 +13,7 @@ public final class Ledger {
     private ShopConfig shopConfig;
     private JobsConfig jobsConfig;
     private PlayerStore playerStore;
+    private JobPayoutStore jobPayoutStore;
     private TransactionLog transactionLog;
     private ShopService shopService;
     private JobsService jobsService;
@@ -29,6 +30,7 @@ public final class Ledger {
             jobsConfig = JobsConfig.load(configDir.resolve("jobs.json"));
             MessagesConfig.ensureExists(configDir.resolve("messages.json"));
             playerStore = PlayerStore.load(dataDir.resolve("players.json"), commonConfig.startingBalance());
+            jobPayoutStore = JobPayoutStore.load(dataDir.resolve("job_payouts.json"));
             transactionLog = new TransactionLog(dataDir.resolve("transactions.log"));
             shopService = new ShopService(this);
             jobsService = new JobsService(this);
@@ -41,6 +43,9 @@ public final class Ledger {
     public void stop() {
         if (playerStore != null) {
             playerStore.save();
+        }
+        if (jobPayoutStore != null) {
+            jobPayoutStore.save();
         }
     }
 
@@ -84,6 +89,11 @@ public final class Ledger {
     public TransactionLog transactions() {
         ensureStarted();
         return transactionLog;
+    }
+
+    public JobPayoutStore jobPayouts() {
+        ensureStarted();
+        return jobPayoutStore;
     }
 
     public ShopService shop() {

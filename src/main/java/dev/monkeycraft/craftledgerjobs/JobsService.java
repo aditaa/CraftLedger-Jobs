@@ -16,7 +16,7 @@ public final class JobsService {
 
     public JobsService(Ledger ledger) {
         this.ledger = ledger;
-        this.payoutLimiter = new JobPayoutLimiter();
+        this.payoutLimiter = new JobPayoutLimiter(ledger.jobPayouts());
     }
 
     public JoinResult join(ServerPlayer player, String jobId) {
@@ -98,11 +98,16 @@ public final class JobsService {
         if (payout == null || !EconomyRules.isPositiveFinite(payout)) {
             return;
         }
+        if (!ledger.players().canDeposit(player, payout)) {
+            return;
+        }
         String payoutKey = type + ":" + detail;
         if (!payoutLimiter.allow(player.getUUID(), payoutKey, payout, ledger.jobsConfig())) {
             return;
         }
-        ledger.players().deposit(player, payout);
+        if (!ledger.players().deposit(player, payout)) {
+            return;
+        }
         ledger.transactions().write(type, player, payout, detail);
         if (ledger.jobsConfig().notifyPayouts) {
             player.sendSystemMessage(TextUtil.success("Job payout: " + ledger.common().format(payout)));

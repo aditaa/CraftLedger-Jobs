@@ -58,6 +58,7 @@ Controls jobs and event payouts.
 World data is stored in `world/craftledger/`:
 
 - `players.json`
+- `job_payouts.json`
 - `transactions.log`
 
 Back up these files with the world.

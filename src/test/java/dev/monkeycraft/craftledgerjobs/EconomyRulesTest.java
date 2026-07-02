@@ -25,6 +25,8 @@ class EconomyRulesTest {
         assertEquals(Double.MAX_VALUE, EconomyRules.addToBalance(Double.MAX_VALUE, Double.MAX_VALUE));
 
         assertEquals(7.5D, EconomyRules.addToBalance(5.0D, 2.5D));
+        assertTrue(EconomyRules.canAddToBalance(5.0D, 2.5D));
+        assertFalse(EconomyRules.canAddToBalance(Double.MAX_VALUE, Double.MAX_VALUE));
     }
 
     @Test

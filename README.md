@@ -98,6 +98,7 @@ Config files are created in `config/craftledger/`:
 World data is stored in `world/craftledger/`:
 
 - `players.json`
+- `job_payouts.json`
 - `transactions.log`
 
 Player data is saved by UUID with last known player name. Writes go through a temporary file and atomic replace when the filesystem supports it.

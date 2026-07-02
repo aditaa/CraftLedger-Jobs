@@ -76,13 +76,19 @@ public final class PlayerStore {
         return true;
     }
 
-    public void deposit(ServerPlayer player, double amount) {
-        if (!EconomyRules.isPositiveFinite(amount)) {
-            return;
-        }
+    public boolean canDeposit(ServerPlayer player, double amount) {
         PlayerAccount account = get(player);
+        return EconomyRules.canAddToBalance(account.balance, amount);
+    }
+
+    public boolean deposit(ServerPlayer player, double amount) {
+        PlayerAccount account = get(player);
+        if (!EconomyRules.canAddToBalance(account.balance, amount)) {
+            return false;
+        }
         account.balance = EconomyRules.addToBalance(account.balance, amount);
         save();
+        return true;
     }
 
     public void add(UUID uuid, String name, double amount) {
