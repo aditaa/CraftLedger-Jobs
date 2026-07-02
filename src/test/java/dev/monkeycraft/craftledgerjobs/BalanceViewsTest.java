@@ -12,7 +12,7 @@ class BalanceViewsTest {
         String output = BalanceViews.topBalances(List.of(
                 new PlayerStore.BalanceEntry("Ada", 250),
                 new PlayerStore.BalanceEntry("Bert", 100)
-        ), new CommonConfig(0, "coins", "$"), 1);
+        ), new CommonConfig(true, 0, "coins", "$"), 1);
 
         assertEquals("""
                 Top balances (page 1/1):
@@ -22,6 +22,6 @@ class BalanceViewsTest {
 
     @Test
     void handlesNoStoredBalances() {
-        assertEquals("No top balances configured.", BalanceViews.topBalances(List.of(), new CommonConfig(0, "coins", "$"), 1));
+        assertEquals("No top balances configured.", BalanceViews.topBalances(List.of(), new CommonConfig(true, 0, "coins", "$"), 1));
     }
 }

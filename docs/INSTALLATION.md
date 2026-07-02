@@ -20,6 +20,8 @@ Players should not need CraftLedger Jobs installed in their client modpack.
 5. Join from a client without CraftLedger Jobs installed.
 6. Run the manual checklist in [Testing](TESTING.md).
 
+The generated default configs are meant to be playable without customization. A server can drop in the jar, restart, and get starter balances, a small buy/sell shop, and four default jobs.
+
 ## Files
 
 Config files live in `config/craftledger/`:
@@ -40,6 +42,8 @@ Back up the world data files with the world. They contain balances, job selectio
 ## Reloading
 
 Use `/craftledger reload` after editing config files. Reload validates config before replacing the active settings. If validation fails, the previous active settings remain in memory.
+
+Set `currencyEnabled = false` in `common.toml` to turn off virtual currency features. Set `enabled = false` in `jobs.json` to turn off jobs.
 
 ## Permissions
 

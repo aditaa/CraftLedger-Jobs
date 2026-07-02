@@ -15,6 +15,9 @@ This section tracks work intended for the first public jar release. The release 
 - Initial economy commands: `/balance`, `/money`, `/baltop`, `/pay`, and operator balance management.
 - Configurable shop and sell commands: `/sell hand`, `/sell all`, `/shop list`, `/shop sell`, `/shop price`, and `/shop buy`.
 - Configurable jobs system with miner, farmer, hunter, and woodcutter defaults.
+- Drop-in default configs for currency, shop, and jobs.
+- Config flags to disable virtual currency or jobs independently.
+- Job XP payout tables alongside currency payout tables.
 - Job payout cooldowns and daily payout limits.
 - Forge permission nodes for admin, balance lookup, balance leaderboard, and transaction-log access.
 - Persistent player balances, job selections, job payout totals, and transaction logs.

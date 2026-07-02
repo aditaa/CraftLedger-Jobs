@@ -13,6 +13,8 @@ Server-side jobs and economy for Forge 1.20.1 servers.
 
 CraftLedger Jobs is built for Minecraft servers that want balances, shops, sell commands, and job payouts without requiring players to install an extra client-side mod.
 
+Default configs are generated on first server start, so the mod is intended to be usable as a drop-in jar before deeper customization.
+
 ## Project Status
 
 CraftLedger Jobs is pre-release. The first jar release is intentionally not published yet.

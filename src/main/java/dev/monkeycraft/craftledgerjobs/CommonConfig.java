@@ -5,17 +5,19 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public record CommonConfig(double startingBalance, String currencyName, String currencySymbol) {
+public record CommonConfig(boolean currencyEnabled, double startingBalance, String currencyName, String currencySymbol) {
     public static CommonConfig load(Path path) throws IOException {
         if (Files.notExists(path)) {
             Files.writeString(path, """
                     # CraftLedger Jobs common config
+                    currencyEnabled = true
                     startingBalance = 100.0
                     currencyName = "coins"
                     currencySymbol = "$"
                     """, StandardCharsets.UTF_8);
         }
 
+        boolean currencyEnabled = true;
         double startingBalance = 100.0D;
         String currencyName = "coins";
         String currencySymbol = "$";
@@ -27,7 +29,9 @@ public record CommonConfig(double startingBalance, String currencyName, String c
             String[] parts = line.split("=", 2);
             String key = parts[0].trim();
             String value = stripQuotes(parts[1].trim());
-            if ("startingBalance".equals(key)) {
+            if ("currencyEnabled".equals(key)) {
+                currencyEnabled = parseBoolean("common.toml currencyEnabled", value);
+            } else if ("startingBalance".equals(key)) {
                 try {
                     startingBalance = Double.parseDouble(value);
                 } catch (NumberFormatException ex) {
@@ -39,7 +43,7 @@ public record CommonConfig(double startingBalance, String currencyName, String c
                 currencySymbol = value;
             }
         }
-        CommonConfig config = new CommonConfig(startingBalance, currencyName, currencySymbol);
+        CommonConfig config = new CommonConfig(currencyEnabled, startingBalance, currencyName, currencySymbol);
         config.validate();
         return config;
     }
@@ -53,6 +57,16 @@ public record CommonConfig(double startingBalance, String currencyName, String c
             return value.substring(1, value.length() - 1);
         }
         return value;
+    }
+
+    private static boolean parseBoolean(String label, String value) {
+        if ("true".equalsIgnoreCase(value)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(value)) {
+            return false;
+        }
+        throw new ConfigValidationException(label + " must be true or false.");
     }
 
     private void validate() {

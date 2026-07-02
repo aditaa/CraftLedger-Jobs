@@ -32,7 +32,7 @@ class JobViewsTest {
                 "minecraft:zombie", 2.0D
         )));
 
-        String output = JobViews.info(config, new CommonConfig(100, "coins", "$"), "miner", 1);
+        String output = JobViews.info(config, new CommonConfig(true, 100, "coins", "$"), "miner", 1);
 
         assertEquals("""
                 Miner (miner)
@@ -43,6 +43,24 @@ class JobViewsTest {
     }
 
     @Test
+    void infoIncludesXpPayoutsAndHidesCurrencyWhenDisabled() {
+        JobsConfig config = new JobsConfig();
+        config.jobs.put("miner", new JobsConfig.JobDefinition("Miner", "Break rocks.", Map.of(
+                "minecraft:coal_ore", 1.0D
+        ), Map.of(), Map.of(
+                "minecraft:coal_ore", 3
+        ), Map.of()));
+
+        String output = JobViews.info(config, new CommonConfig(false, 100, "coins", "$"), "miner", 1);
+
+        assertEquals("""
+                Miner (miner)
+                Break rocks.
+                Payouts (page 1/1):
+                Break minecraft:coal_ore: 3 XP""", output);
+    }
+
+    @Test
     void infoHandlesJobsWithoutPayouts() {
         JobsConfig config = new JobsConfig();
         config.jobs.put("builder", new JobsConfig.JobDefinition("Builder", "Coming soon.", Map.of(), Map.of()));
@@ -50,6 +68,6 @@ class JobViewsTest {
         assertEquals("""
                 Builder (builder)
                 Coming soon.
-                No payouts configured.""", JobViews.info(config, new CommonConfig(100, "coins", "$"), "builder", 1));
+                No payouts configured.""", JobViews.info(config, new CommonConfig(true, 100, "coins", "$"), "builder", 1));
     }
 }

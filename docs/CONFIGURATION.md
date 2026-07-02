@@ -7,10 +7,13 @@ CraftLedger Jobs creates config files in `config/craftledger/`.
 Controls global economy settings.
 
 ```toml
+currencyEnabled = true
 startingBalance = 100.0
 currencyName = "coins"
 currencySymbol = "$"
 ```
+
+Set `currencyEnabled = false` to turn off CraftLedger's virtual currency features. Jobs can still run with XP payouts while currency is disabled.
 
 ## `shop.json`
 
@@ -36,6 +39,7 @@ Controls jobs and event payouts.
 
 ```json
 {
+  "enabled": true,
   "allowSwitching": true,
   "notifyPayouts": true,
   "payoutCooldownSeconds": 0,
@@ -47,11 +51,17 @@ Controls jobs and event payouts.
       "blockBreak": {
         "minecraft:coal_ore": 1.0
       },
-      "entityKill": {}
+      "entityKill": {},
+      "blockBreakXp": {
+        "minecraft:coal_ore": 1
+      },
+      "entityKillXp": {}
     }
   }
 }
 ```
+
+`blockBreak` and `entityKill` are currency payouts. `blockBreakXp` and `entityKillXp` are XP payouts. Configure either payout type, or both, for the same action.
 
 ## Data Files
 
@@ -70,10 +80,12 @@ Back up these files with the world.
 Current validation rules:
 
 - `startingBalance` must be finite and greater than or equal to `0`.
+- `currencyEnabled` controls whether virtual currency, balances, shops, sell commands, and pay commands are active.
 - `currencyName` and `currencySymbol` must not be blank.
 - Shop item ids must use namespaced ids such as `minecraft:bread`.
 - Shop prices must be finite and greater than `0`.
 - Buy offer `maxStack` must be greater than or equal to `0`; `0` means use the item default.
+- `enabled` controls whether the jobs system is active.
 - `allowSwitching` controls whether players can join another job without leaving first.
 - `notifyPayouts` controls whether players receive chat messages for each job payout.
 - `payoutCooldownSeconds` blocks repeated payouts for the same player and same configured payout id inside the cooldown window. `0` disables the cooldown.
@@ -81,6 +93,7 @@ Current validation rules:
 - Job ids may contain lowercase letters, numbers, underscores, and hyphens.
 - Job payout ids must be namespaced ids such as `minecraft:coal_ore`.
 - Job payouts must be finite and greater than `0`.
+- Job XP payouts must be whole numbers greater than `0`.
 - `payoutCooldownSeconds` must be greater than or equal to `0`.
 - `dailyPayoutLimit` must be finite and greater than or equal to `0`.
 

@@ -20,6 +20,8 @@ Use the same namespaced id that appears in `shop.json`, for example `/shop price
 
 Check that the player has joined the job, the event is listed in `jobs.json`, and `dailyPayoutLimit` or `payoutCooldownSeconds` is not blocking the payout.
 
+If `currencyEnabled = false`, only XP payouts from `blockBreakXp` and `entityKillXp` are paid. Currency payout maps are ignored while currency is disabled.
+
 ## Balances look wrong after restart
 
 Check `world/craftledger/players.json` and server logs for save errors. Back up `world/craftledger/` with the world.

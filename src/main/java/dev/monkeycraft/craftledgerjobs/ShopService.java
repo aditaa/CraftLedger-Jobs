@@ -23,6 +23,9 @@ public final class ShopService {
     }
 
     public SellResult sellHand(ServerPlayer player, int requestedAmount) {
+        if (!ledger.common().currencyEnabled()) {
+            return SellResult.none("Currency is disabled.");
+        }
         ItemStack hand = player.getMainHandItem();
         if (hand.isEmpty()) {
             return SellResult.none("The item in your hand cannot be sold.");
@@ -50,6 +53,9 @@ public final class ShopService {
     }
 
     public SellResult sellAll(ServerPlayer player, String requestedItemId) {
+        if (!ledger.common().currencyEnabled()) {
+            return SellResult.none("Currency is disabled.");
+        }
         String normalizedFilter = requestedItemId == null || requestedItemId.isBlank() ? null : requestedItemId.toLowerCase(Locale.ROOT);
         double total = 0;
         int itemCount = 0;
@@ -91,6 +97,9 @@ public final class ShopService {
     }
 
     public BuyResult buy(ServerPlayer player, String itemId, int amount) {
+        if (!ledger.common().currencyEnabled()) {
+            return BuyResult.currencyDisabled();
+        }
         String normalizedItemId = itemId.toLowerCase(Locale.ROOT);
         ShopConfig.BuyOffer offer = ledger.shopConfig().buyPrices.get(normalizedItemId);
         if (offer == null || offer.price <= 0) {
@@ -129,6 +138,9 @@ public final class ShopService {
     }
 
     public String listBuy(CommonConfig common, int page) {
+        if (!common.currencyEnabled()) {
+            return "Currency is disabled.";
+        }
         List<String> rows = new ArrayList<>();
         for (Map.Entry<String, ShopConfig.BuyOffer> entry : ledger.shopConfig().buyPrices.entrySet()) {
             rows.add(entry.getKey() + " - buy " + common.format(entry.getValue().price));
@@ -137,6 +149,9 @@ public final class ShopService {
     }
 
     public String listSell(CommonConfig common, int page) {
+        if (!common.currencyEnabled()) {
+            return "Currency is disabled.";
+        }
         List<String> rows = new ArrayList<>();
         for (Map.Entry<String, Double> entry : ledger.shopConfig().sellPrices.entrySet()) {
             rows.add(entry.getKey() + " - sell " + common.format(entry.getValue()));
@@ -145,6 +160,9 @@ public final class ShopService {
     }
 
     public String price(String itemId, CommonConfig common) {
+        if (!common.currencyEnabled()) {
+            return "Currency is disabled.";
+        }
         String normalizedItemId = itemId.toLowerCase(Locale.ROOT);
         ShopConfig.BuyOffer buyOffer = ledger.shopConfig().buyPrices.get(normalizedItemId);
         Double sellPrice = ledger.shopConfig().sellPrices.get(normalizedItemId);
@@ -181,6 +199,10 @@ public final class ShopService {
 
         static BuyResult insufficientFunds(double total) {
             return new BuyResult(false, "You need more money for that purchase.", total, 0, false);
+        }
+
+        static BuyResult currencyDisabled() {
+            return new BuyResult(false, "Currency is disabled.", 0, 0, false);
         }
     }
 

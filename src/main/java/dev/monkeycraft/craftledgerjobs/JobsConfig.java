@@ -11,6 +11,7 @@ public final class JobsConfig {
     private static final Pattern SIMPLE_ID = Pattern.compile("[a-z0-9_-]+");
     private static final Pattern RESOURCE_ID = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
 
+    public boolean enabled = true;
     public boolean allowSwitching = true;
     public boolean notifyPayouts = true;
     public int payoutCooldownSeconds = 0;
@@ -52,6 +53,8 @@ public final class JobsConfig {
             }
             job.blockBreak.forEach((blockId, payout) -> validatePayout("blockBreak", jobId, blockId, payout));
             job.entityKill.forEach((entityId, payout) -> validatePayout("entityKill", jobId, entityId, payout));
+            job.blockBreakXp.forEach((blockId, xp) -> validateXpPayout("blockBreakXp", jobId, blockId, xp));
+            job.entityKillXp.forEach((entityId, xp) -> validateXpPayout("entityKillXp", jobId, entityId, xp));
         });
     }
 
@@ -64,6 +67,15 @@ public final class JobsConfig {
         }
     }
 
+    private static void validateXpPayout(String section, String jobId, String resourceId, int payout) {
+        if (resourceId == null || !RESOURCE_ID.matcher(resourceId).matches()) {
+            throw new ConfigValidationException("jobs.json " + section + " for job " + jobId + " contains invalid id: " + resourceId);
+        }
+        if (payout <= 0) {
+            throw new ConfigValidationException("jobs.json " + section + " payout for " + resourceId + " in job " + jobId + " must be greater than 0.");
+        }
+    }
+
     private static JobsConfig defaults() {
         JobsConfig config = new JobsConfig();
         config.jobs.put("miner", new JobDefinition("Miner", "Earn money from ores and mining materials.", Map.of(
@@ -71,22 +83,40 @@ public final class JobsConfig {
                 "minecraft:iron_ore", 3.0D,
                 "minecraft:deepslate_iron_ore", 3.5D,
                 "minecraft:diamond_ore", 20.0D
+        ), Map.of(), Map.of(
+                "minecraft:coal_ore", 1,
+                "minecraft:iron_ore", 2,
+                "minecraft:deepslate_iron_ore", 2,
+                "minecraft:diamond_ore", 10
         ), Map.of()));
         config.jobs.put("farmer", new JobDefinition("Farmer", "Earn money from fully grown crops.", Map.of(
                 "minecraft:wheat", 0.35D,
                 "minecraft:carrots", 0.35D,
                 "minecraft:potatoes", 0.35D
+        ), Map.of(), Map.of(
+                "minecraft:wheat", 1,
+                "minecraft:carrots", 1,
+                "minecraft:potatoes", 1
         ), Map.of()));
         config.jobs.put("woodcutter", new JobDefinition("Woodcutter", "Earn money from chopping logs.", Map.of(
                 "minecraft:oak_log", 0.50D,
                 "minecraft:spruce_log", 0.50D,
                 "minecraft:birch_log", 0.50D
+        ), Map.of(), Map.of(
+                "minecraft:oak_log", 1,
+                "minecraft:spruce_log", 1,
+                "minecraft:birch_log", 1
         ), Map.of()));
         config.jobs.put("hunter", new JobDefinition("Hunter", "Earn money from killing hostile mobs.", Map.of(), Map.of(
                 "minecraft:zombie", 1.25D,
                 "minecraft:skeleton", 1.50D,
                 "minecraft:creeper", 2.00D,
                 "minecraft:spider", 1.00D
+        ), Map.of(), Map.of(
+                "minecraft:zombie", 2,
+                "minecraft:skeleton", 3,
+                "minecraft:creeper", 5,
+                "minecraft:spider", 2
         )));
         return config;
     }
@@ -96,16 +126,31 @@ public final class JobsConfig {
         public String description = "";
         public Map<String, Double> blockBreak = new LinkedHashMap<>();
         public Map<String, Double> entityKill = new LinkedHashMap<>();
+        public Map<String, Integer> blockBreakXp = new LinkedHashMap<>();
+        public Map<String, Integer> entityKillXp = new LinkedHashMap<>();
 
         public JobDefinition(String displayName, Map<String, Double> blockBreak, Map<String, Double> entityKill) {
             this(displayName, "", blockBreak, entityKill);
         }
 
         public JobDefinition(String displayName, String description, Map<String, Double> blockBreak, Map<String, Double> entityKill) {
+            this(displayName, description, blockBreak, entityKill, Map.of(), Map.of());
+        }
+
+        public JobDefinition(
+                String displayName,
+                String description,
+                Map<String, Double> blockBreak,
+                Map<String, Double> entityKill,
+                Map<String, Integer> blockBreakXp,
+                Map<String, Integer> entityKillXp
+        ) {
             this.displayName = displayName;
             this.description = description;
             this.blockBreak = new LinkedHashMap<>(blockBreak);
             this.entityKill = new LinkedHashMap<>(entityKill);
+            this.blockBreakXp = new LinkedHashMap<>(blockBreakXp);
+            this.entityKillXp = new LinkedHashMap<>(entityKillXp);
         }
 
         void normalize() {
@@ -120,6 +165,12 @@ public final class JobsConfig {
             }
             if (entityKill == null) {
                 entityKill = new LinkedHashMap<>();
+            }
+            if (blockBreakXp == null) {
+                blockBreakXp = new LinkedHashMap<>();
+            }
+            if (entityKillXp == null) {
+                entityKillXp = new LinkedHashMap<>();
             }
         }
     }
