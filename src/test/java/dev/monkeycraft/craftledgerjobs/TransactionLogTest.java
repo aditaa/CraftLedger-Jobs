@@ -110,4 +110,23 @@ class TransactionLogTest {
         assertTrue(lines.get(0).contains("type56"));
         assertTrue(lines.get(4).contains("type60"));
     }
+
+    @Test
+    void tailCanFilterByPlayerNameOrUuid() throws Exception {
+        Path path = tempDir.resolve("transactions.log");
+        TransactionLog log = new TransactionLog(path);
+
+        log.write("one", "Ada", "uuid-a", 1.0D, "detail");
+        log.write("two", "Bert", "uuid-b", 1.0D, "detail");
+        log.write("three", "Ada", "uuid-a", 1.0D, "detail");
+
+        List<String> byName = log.tail("ada", 10);
+        assertEquals(2, byName.size());
+        assertTrue(byName.get(0).contains("one"));
+        assertTrue(byName.get(1).contains("three"));
+
+        List<String> byUuid = log.tail("uuid-b", 10);
+        assertEquals(1, byUuid.size());
+        assertTrue(byUuid.get(0).contains("two"));
+    }
 }

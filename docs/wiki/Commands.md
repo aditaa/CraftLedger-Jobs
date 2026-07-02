@@ -26,6 +26,10 @@
 - `/craftledger balance set <player> <amount>`
 - `/craftledger balance add <player> <amount>`
 - `/craftledger balance take <player> <amount>`
+- `/craftledger player info <player>`
+- `/craftledger job set <player> <job>`
+- `/craftledger job clear <player>`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
 - `/craftledger transactions tail [lines]`
+- `/craftledger transactions tail player <player> [lines]`

@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public final class PlayerStore {
+public final class PlayerStore implements PlayerDataStore {
     private final Path path;
     private final double startingBalance;
     private final Map<String, PlayerAccount> players;
@@ -33,6 +33,7 @@ public final class PlayerStore {
         return new PlayerStore(path, startingBalance, players);
     }
 
+    @Override
     public PlayerAccount get(ServerPlayer player) {
         String uuid = player.getUUID().toString();
         PlayerAccount account = players.computeIfAbsent(uuid, ignored -> new PlayerAccount());
@@ -45,6 +46,7 @@ public final class PlayerStore {
         return account;
     }
 
+    @Override
     public PlayerAccount get(UUID uuid, String fallbackName) {
         PlayerAccount account = players.computeIfAbsent(uuid.toString(), ignored -> new PlayerAccount());
         if (account.lastKnownName == null || account.lastKnownName.isBlank()) {
@@ -58,14 +60,17 @@ public final class PlayerStore {
         return account;
     }
 
+    @Override
     public double balance(ServerPlayer player) {
         return get(player).balance;
     }
 
+    @Override
     public double balance(UUID uuid, String name) {
         return get(uuid, name).balance;
     }
 
+    @Override
     public boolean withdraw(ServerPlayer player, double amount) {
         PlayerAccount account = get(player);
         if (!EconomyRules.canWithdraw(account.balance, amount)) {
@@ -76,11 +81,13 @@ public final class PlayerStore {
         return true;
     }
 
+    @Override
     public boolean canDeposit(ServerPlayer player, double amount) {
         PlayerAccount account = get(player);
         return EconomyRules.canAddToBalance(account.balance, amount);
     }
 
+    @Override
     public boolean deposit(ServerPlayer player, double amount) {
         PlayerAccount account = get(player);
         if (!EconomyRules.canAddToBalance(account.balance, amount)) {
@@ -91,24 +98,28 @@ public final class PlayerStore {
         return true;
     }
 
+    @Override
     public void add(UUID uuid, String name, double amount) {
         PlayerAccount account = get(uuid, name);
         account.balance = EconomyRules.addToBalance(account.balance, amount);
         save();
     }
 
+    @Override
     public void set(UUID uuid, String name, double amount) {
         PlayerAccount account = get(uuid, name);
         account.balance = EconomyRules.nonNegativeFiniteOrZero(amount);
         save();
     }
 
+    @Override
     public void take(UUID uuid, String name, double amount) {
         PlayerAccount account = get(uuid, name);
         account.balance = EconomyRules.subtractFromBalance(account.balance, amount);
         save();
     }
 
+    @Override
     public Optional<KnownPlayer> findKnownPlayer(String nameOrUuid) {
         if (nameOrUuid == null || nameOrUuid.isBlank()) {
             return Optional.empty();
@@ -132,6 +143,7 @@ public final class PlayerStore {
         return Optional.empty();
     }
 
+    @Override
     public List<String> knownPlayerNames() {
         return players.values().stream()
                 .map(account -> account.lastKnownName)
@@ -141,6 +153,7 @@ public final class PlayerStore {
                 .toList();
     }
 
+    @Override
     public List<BalanceEntry> topBalances() {
         return players.entrySet().stream()
                 .filter(entry -> entry.getValue().initialized)
@@ -152,22 +165,45 @@ public final class PlayerStore {
                 .toList();
     }
 
+    @Override
     public void setJob(ServerPlayer player, String job) {
         PlayerAccount account = get(player);
         account.job = job;
         save();
     }
 
+    @Override
     public void clearJob(ServerPlayer player) {
         PlayerAccount account = get(player);
         account.job = null;
         save();
     }
 
+    @Override
     public String job(ServerPlayer player) {
         return get(player).job;
     }
 
+    @Override
+    public void setJob(UUID uuid, String name, String job) {
+        PlayerAccount account = get(uuid, name);
+        account.job = job;
+        save();
+    }
+
+    @Override
+    public void clearJob(UUID uuid, String name) {
+        PlayerAccount account = get(uuid, name);
+        account.job = null;
+        save();
+    }
+
+    @Override
+    public String job(UUID uuid, String name) {
+        return get(uuid, name).job;
+    }
+
+    @Override
     public void save() {
         try {
             JsonFiles.writeAtomic(path, new PlayerFile(players));
@@ -189,7 +225,13 @@ public final class PlayerStore {
     public record BalanceEntry(String name, double balance) {
     }
 
-    private record PlayerFile(Map<String, PlayerAccount> players) {
+    private static final class PlayerFile {
+        public int version = 1;
+        public Map<String, PlayerAccount> players;
+
+        PlayerFile(Map<String, PlayerAccount> players) {
+            this.players = players;
+        }
     }
 
     private static String displayName(PlayerAccount account, String fallback) {

@@ -1,7 +1,7 @@
 package dev.monkeycraft.craftledgerjobs;
 
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.CropBlock;
@@ -81,12 +81,32 @@ public final class JobsService {
         if (job == null) {
             return;
         }
-        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(event.getState().getBlock());
+        ResourceLocation blockId = RegistryIds.blockId(event.getState().getBlock());
         if (event.getState().getBlock() instanceof CropBlock crop && !crop.isMaxAge(event.getState())) {
             return;
         }
         String detail = blockId.toString();
-        pay(player, job.blockBreak.get(detail), job.blockBreakXp.get(detail), "job_block_break", detail);
+        Double currencyPayout = job.blockBreak.get(detail);
+        Integer xpPayout = job.blockBreakXp.get(detail);
+        if (hasConfiguredPayout(currencyPayout, xpPayout)
+                && ledger.jobsConfig().trackPlacedBlocks
+                && event.getLevel() instanceof ServerLevel level
+                && ledger.placedBlocks().consume(level, event.getPos())) {
+            return;
+        }
+        pay(player, currencyPayout, xpPayout, "job_block_break", detail);
+    }
+
+    public void handleBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        if (!ledger.jobsConfig().enabled || !ledger.jobsConfig().trackPlacedBlocks) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Player)) {
+            return;
+        }
+        if (event.getLevel() instanceof ServerLevel level) {
+            ledger.placedBlocks().record(level, event.getPos(), ledger.jobsConfig().maxTrackedPlacedBlocks);
+        }
     }
 
     public void handleLivingDeath(LivingDeathEvent event) {
@@ -107,7 +127,7 @@ public final class JobsService {
         if (job == null) {
             return;
         }
-        ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
+        ResourceLocation entityId = RegistryIds.entityTypeId(event.getEntity().getType());
         String detail = entityId.toString();
         pay(player, job.entityKill.get(detail), job.entityKillXp.get(detail), "job_entity_kill", detail);
     }
@@ -133,8 +153,12 @@ public final class JobsService {
         }
         ledger.transactions().write(type, player, currency, detail + payoutDetail(currency, xp));
         if (ledger.jobsConfig().notifyPayouts) {
-            player.sendSystemMessage(TextUtil.success("Job payout: " + payoutMessage(currency, xp)));
+            player.sendSystemMessage(TextUtil.success(ledger.messages().format("job.payout", "payout", payoutMessage(currency, xp))));
         }
+    }
+
+    private static boolean hasConfiguredPayout(Double currencyPayout, Integer xpPayout) {
+        return currencyPayout != null || xpPayout != null;
     }
 
     private String payoutMessage(double currency, int xp) {

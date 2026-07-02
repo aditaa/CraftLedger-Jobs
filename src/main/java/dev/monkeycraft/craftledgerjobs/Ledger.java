@@ -12,9 +12,11 @@ public final class Ledger {
     private CommonConfig commonConfig;
     private ShopConfig shopConfig;
     private JobsConfig jobsConfig;
-    private PlayerStore playerStore;
-    private JobPayoutStore jobPayoutStore;
-    private TransactionLog transactionLog;
+    private MessagesConfig messagesConfig;
+    private PlayerDataStore playerStore;
+    private JobPayoutDataStore jobPayoutStore;
+    private TransactionStore transactionLog;
+    private PlacedBlockStore placedBlockStore;
     private ShopService shopService;
     private JobsService jobsService;
 
@@ -28,13 +30,11 @@ public final class Ledger {
             commonConfig = CommonConfig.load(configDir.resolve("common.toml"));
             shopConfig = ShopConfig.load(configDir.resolve("shop.json"));
             jobsConfig = JobsConfig.load(configDir.resolve("jobs.json"));
-            MessagesConfig.ensureExists(configDir.resolve("messages.json"));
-            playerStore = PlayerStore.load(dataDir.resolve("players.json"), commonConfig.startingBalance());
-            jobPayoutStore = JobPayoutStore.load(dataDir.resolve("job_payouts.json"));
-            transactionLog = new TransactionLog(dataDir.resolve("transactions.log"));
+            messagesConfig = MessagesConfig.load(configDir.resolve("messages.json"));
+            loadDataStores(dataDir);
             shopService = new ShopService(this);
             jobsService = new JobsService(this);
-            CraftLedgerJobs.LOGGER.info("CraftLedger Jobs loaded");
+            CraftLedgerJobs.LOGGER.info("CraftLedger Jobs loaded with {} storage", commonConfig.storageBackend());
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to start CraftLedger Jobs", ex);
         }
@@ -44,8 +44,18 @@ public final class Ledger {
         if (playerStore != null) {
             playerStore.save();
         }
-        if (jobPayoutStore != null) {
-            jobPayoutStore.save();
+        if (jobPayoutStore instanceof JobPayoutStore jsonJobPayouts) {
+            jsonJobPayouts.save();
+        }
+        if (placedBlockStore != null) {
+            placedBlockStore.save();
+        }
+        if (playerStore instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception ex) {
+                CraftLedgerJobs.LOGGER.warn("Failed to close CraftLedger storage", ex);
+            }
         }
     }
 
@@ -56,10 +66,15 @@ public final class Ledger {
             CommonConfig reloadedCommon = CommonConfig.load(configDir.resolve("common.toml"));
             ShopConfig reloadedShop = ShopConfig.load(configDir.resolve("shop.json"));
             JobsConfig reloadedJobs = JobsConfig.load(configDir.resolve("jobs.json"));
-            MessagesConfig.ensureExists(configDir.resolve("messages.json"));
+            MessagesConfig reloadedMessages = MessagesConfig.load(configDir.resolve("messages.json"));
+            if (!commonConfig.storageBackend().equals(reloadedCommon.storageBackend())
+                    || !commonConfig.sqliteFile().equals(reloadedCommon.sqliteFile())) {
+                throw new ConfigValidationException("common.toml storageBackend/sqliteFile changes require a server restart.");
+            }
             commonConfig = reloadedCommon;
             shopConfig = reloadedShop;
             jobsConfig = reloadedJobs;
+            messagesConfig = reloadedMessages;
             CraftLedgerJobs.LOGGER.info("CraftLedger Jobs config reloaded");
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to reload CraftLedger Jobs", ex);
@@ -81,19 +96,29 @@ public final class Ledger {
         return jobsConfig;
     }
 
-    public PlayerStore players() {
+    public MessagesConfig messages() {
+        ensureStarted();
+        return messagesConfig;
+    }
+
+    public PlayerDataStore players() {
         ensureStarted();
         return playerStore;
     }
 
-    public TransactionLog transactions() {
+    public TransactionStore transactions() {
         ensureStarted();
         return transactionLog;
     }
 
-    public JobPayoutStore jobPayouts() {
+    public JobPayoutDataStore jobPayouts() {
         ensureStarted();
         return jobPayoutStore;
+    }
+
+    public PlacedBlockStore placedBlocks() {
+        ensureStarted();
+        return placedBlockStore;
     }
 
     public ShopService shop() {
@@ -110,5 +135,20 @@ public final class Ledger {
         if (playerStore == null) {
             throw new IllegalStateException("CraftLedger Jobs has not started yet");
         }
+    }
+
+    private void loadDataStores(Path dataDir) throws IOException {
+        placedBlockStore = PlacedBlockStore.load(dataDir.resolve("placed_blocks.json"));
+        if (CommonConfig.STORAGE_SQLITE.equals(commonConfig.storageBackend())) {
+            SqliteLedgerStore sqlite = SqliteLedgerStore.load(dataDir.resolve(commonConfig.sqliteFile()), commonConfig.startingBalance());
+            playerStore = sqlite;
+            jobPayoutStore = sqlite;
+            transactionLog = sqlite;
+            return;
+        }
+
+        playerStore = PlayerStore.load(dataDir.resolve("players.json"), commonConfig.startingBalance());
+        jobPayoutStore = JobPayoutStore.load(dataDir.resolve("job_payouts.json"));
+        transactionLog = new TransactionLog(dataDir.resolve("transactions.log"));
     }
 }

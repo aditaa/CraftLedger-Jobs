@@ -26,6 +26,8 @@ class JobsConfigTest {
         assertTrue(config.enabled);
         assertTrue(config.allowSwitching);
         assertTrue(config.notifyPayouts);
+        assertTrue(config.trackPlacedBlocks);
+        assertEquals(50000, config.maxTrackedPlacedBlocks);
         assertEquals(0, config.payoutCooldownSeconds);
         assertEquals(0.0D, config.dailyPayoutLimit);
         assertTrue(config.jobs.containsKey("miner"));
@@ -130,6 +132,8 @@ class JobsConfigTest {
                   "allowSwitching": false,
                   "enabled": false,
                   "notifyPayouts": false,
+                  "trackPlacedBlocks": false,
+                  "maxTrackedPlacedBlocks": 123,
                   "payoutCooldownSeconds": 10,
                   "dailyPayoutLimit": 250.0,
                   "jobs": {
@@ -154,6 +158,8 @@ class JobsConfigTest {
         assertFalse(config.enabled);
         assertFalse(config.allowSwitching);
         assertFalse(config.notifyPayouts);
+        assertFalse(config.trackPlacedBlocks);
+        assertEquals(123, config.maxTrackedPlacedBlocks);
         assertEquals(10, config.payoutCooldownSeconds);
         assertEquals(250.0D, config.dailyPayoutLimit);
         assertEquals(3, config.jobs.get("miner").blockBreakXp.get("minecraft:coal_ore"));
@@ -166,6 +172,15 @@ class JobsConfigTest {
         Files.writeString(path, """
                 {
                   "payoutCooldownSeconds": -1,
+                  "jobs": {}
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+
+        Files.writeString(path, """
+                {
+                  "maxTrackedPlacedBlocks": -1,
                   "jobs": {}
                 }
                 """);

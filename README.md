@@ -22,6 +22,7 @@ CraftLedger Jobs is pre-release. The first jar release is intentionally not publ
 The current focus is making the repository trustworthy before public distribution:
 
 - repeatable Gradle builds
+- scaffolded multi-version Forge target profiles
 - CI pass/fail/status reporting
 - unit, repository, server-only source, jar metadata, and Forge server smoke checks
 - dependency review and CodeQL security scanning
@@ -82,9 +83,13 @@ Operator commands:
 - `/craftledger balance set <player> <amount>`
 - `/craftledger balance add <player> <amount>`
 - `/craftledger balance take <player> <amount>`
+- `/craftledger player info <player>`
+- `/craftledger job set <player> <job>`
+- `/craftledger job clear <player>`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
 - `/craftledger transactions tail [lines]`
+- `/craftledger transactions tail player <player> [lines]`
 
 Offline admin balance commands can target players by last known name or UUID after they have joined the server at least once.
 
@@ -101,9 +106,12 @@ World data is stored in `world/craftledger/`:
 
 - `players.json`
 - `job_payouts.json`
+- `placed_blocks.json`
 - `transactions.log`
 
-Player data is saved by UUID with last known player name. Writes go through a temporary file and atomic replace when the filesystem supports it.
+Player data is saved by UUID with last known player name. JSON writes go through a temporary file and atomic replace when the filesystem supports it.
+
+For larger servers, `common.toml` can set `storageBackend = "sqlite"` to store player balances, jobs, job payout totals, and transactions in `world/craftledger/craftledger.sqlite`. The default remains JSON.
 
 See [Configuration](docs/CONFIGURATION.md) for examples.
 See [Installation and Administration](docs/INSTALLATION.md) for server setup and backup notes.
@@ -135,6 +143,24 @@ Windows:
 ```
 
 The built jar is created under `build/libs/`.
+
+Scaffolded Forge target profiles are available for future compatibility work. The default supported build remains Minecraft `1.20.1` / Forge `47.4.10`.
+
+List target profiles:
+
+```bash
+./gradlew listMinecraftTargets
+```
+
+Build a named target profile:
+
+```bash
+./gradlew build -Pcraftledger_mc_target=1.19.2
+```
+
+See [Multi-Version Release Scaffolding](docs/MULTIVERSION.md) before publishing jars for any non-primary target.
+
+Release candidate jars for all scaffolded target profiles are built by the `Release Build` GitHub Actions workflow on `v*` tags or manual dispatch.
 
 For local WSL/Windows setup details, see [Development Environment](docs/DEVELOPMENT.md).
 

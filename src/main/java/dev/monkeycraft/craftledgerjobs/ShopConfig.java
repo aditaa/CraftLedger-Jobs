@@ -9,7 +9,9 @@ import java.util.regex.Pattern;
 
 public final class ShopConfig {
     private static final Pattern RESOURCE_ID = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
+    public static final int CURRENT_VERSION = 1;
 
+    public int version = CURRENT_VERSION;
     public Map<String, Double> sellPrices = new LinkedHashMap<>();
     public Map<String, BuyOffer> buyPrices = new LinkedHashMap<>();
 
@@ -30,11 +32,17 @@ public final class ShopConfig {
         if (buyPrices == null) {
             buyPrices = new LinkedHashMap<>();
         }
+        if (version <= 0) {
+            version = CURRENT_VERSION;
+        }
         validate();
         return this;
     }
 
     private void validate() {
+        if (version < 1) {
+            throw new ConfigValidationException("shop.json version must be greater than or equal to 1.");
+        }
         sellPrices.forEach((itemId, price) -> {
             validateResourceId("shop.json sellPrices", itemId);
             validatePositiveFinite("shop.json sell price for " + itemId, price);
@@ -66,12 +74,23 @@ public final class ShopConfig {
     private static ShopConfig defaults() {
         ShopConfig config = new ShopConfig();
         config.sellPrices.put("minecraft:cobblestone", 0.10D);
+        config.sellPrices.put("minecraft:deepslate", 0.10D);
         config.sellPrices.put("minecraft:coal", 1.00D);
+        config.sellPrices.put("minecraft:copper_ingot", 3.00D);
         config.sellPrices.put("minecraft:iron_ingot", 8.00D);
+        config.sellPrices.put("minecraft:gold_ingot", 12.00D);
+        config.sellPrices.put("minecraft:diamond", 75.00D);
         config.sellPrices.put("minecraft:wheat", 0.50D);
+        config.sellPrices.put("minecraft:carrot", 0.50D);
+        config.sellPrices.put("minecraft:potato", 0.50D);
+        config.sellPrices.put("minecraft:sugar_cane", 0.35D);
         config.sellPrices.put("minecraft:oak_log", 0.75D);
+        config.sellPrices.put("minecraft:spruce_log", 0.75D);
+        config.sellPrices.put("minecraft:birch_log", 0.75D);
         config.buyPrices.put("minecraft:bread", new BuyOffer(2.00D, 16));
         config.buyPrices.put("minecraft:torch", new BuyOffer(0.25D, 64));
+        config.buyPrices.put("minecraft:arrow", new BuyOffer(0.50D, 64));
+        config.buyPrices.put("minecraft:oak_sapling", new BuyOffer(1.00D, 16));
         config.buyPrices.put("minecraft:iron_pickaxe", new BuyOffer(75.00D, 1));
         return config;
     }

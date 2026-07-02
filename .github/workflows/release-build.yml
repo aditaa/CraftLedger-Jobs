@@ -1,0 +1,225 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Release Inputs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Validate target profiles
+        run: ./gradlew validateMinecraftTargetProfiles listMinecraftTargets --console=plain --no-daemon
+
+  build-targets:
+    name: Build Minecraft ${{ matrix.minecraft }} / Forge ${{ matrix.forge }}
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: "1.18.2"
+            minecraft: "1.18.2"
+            forge: "40.3.12"
+            java: "17"
+            minecraft_range: "[1.18.2,1.19)"
+            forge_range: "[40,)"
+          - profile: "1.19.2"
+            minecraft: "1.19.2"
+            forge: "43.5.2"
+            java: "17"
+            minecraft_range: "[1.19.2,1.20)"
+            forge_range: "[43,)"
+          - profile: "1.19.4"
+            minecraft: "1.19.4"
+            forge: "45.4.0"
+            java: "17"
+            minecraft_range: "[1.19.4,1.20)"
+            forge_range: "[45,)"
+          - profile: "1.20.1"
+            minecraft: "1.20.1"
+            forge: "47.4.10"
+            java: "17"
+            minecraft_range: "[1.20.1,1.21)"
+            forge_range: "[47,)"
+          - profile: "1.20.4"
+            minecraft: "1.20.4"
+            forge: "49.2.7"
+            java: "17"
+            minecraft_range: "[1.20.4,1.21)"
+            forge_range: "[49,)"
+          - profile: "1.20.6"
+            minecraft: "1.20.6"
+            forge: "50.2.8"
+            java: "21"
+            minecraft_range: "[1.20.6,1.21)"
+            forge_range: "[50,)"
+          - profile: "1.21.1"
+            minecraft: "1.21.1"
+            forge: "52.1.14"
+            java: "21"
+            minecraft_range: "[1.21.1,1.22)"
+            forge_range: "[52,)"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build target jar
+        run: ./gradlew build -Pcraftledger_mc_target=${{ matrix.profile }} --console=plain --no-daemon
+
+      - name: Inspect server-only jar metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jar_path="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*.jar' ! -name '*-plain.jar' | head -n 1)"
+          test -n "$jar_path"
+
+          unzip -p "$jar_path" META-INF/mods.toml > /tmp/craftledger-mods.toml
+          grep -q 'modId="craftledger_jobs"' /tmp/craftledger-mods.toml
+          grep -q 'displayTest="IGNORE_SERVER_VERSION"' /tmp/craftledger-mods.toml
+          grep -q 'side="SERVER"' /tmp/craftledger-mods.toml
+          grep -Fq 'versionRange="${{ matrix.minecraft_range }}"' /tmp/craftledger-mods.toml
+          grep -Fq 'versionRange="${{ matrix.forge_range }}"' /tmp/craftledger-mods.toml
+
+          unzip -p "$jar_path" pack.mcmeta > /tmp/craftledger-pack.mcmeta
+
+          mkdir -p release-artifacts
+          cp "$jar_path" release-artifacts/
+          cp /tmp/craftledger-mods.toml "release-artifacts/mods-${{ matrix.profile }}.toml"
+          cp /tmp/craftledger-pack.mcmeta "release-artifacts/pack-${{ matrix.profile }}.mcmeta"
+
+      - name: Upload target artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: craftledger-jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  smoke-targets:
+    name: Smoke Minecraft ${{ matrix.minecraft }} / Forge ${{ matrix.forge }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - build-targets
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: "1.18.2"
+            minecraft: "1.18.2"
+            forge: "40.3.12"
+            java: "17"
+          - profile: "1.19.2"
+            minecraft: "1.19.2"
+            forge: "43.5.2"
+            java: "17"
+          - profile: "1.19.4"
+            minecraft: "1.19.4"
+            forge: "45.4.0"
+            java: "17"
+          - profile: "1.20.1"
+            minecraft: "1.20.1"
+            forge: "47.4.10"
+            java: "17"
+          - profile: "1.20.4"
+            minecraft: "1.20.4"
+            forge: "49.2.7"
+            java: "17"
+          - profile: "1.20.6"
+            minecraft: "1.20.6"
+            forge: "50.2.8"
+            java: "21"
+          - profile: "1.21.1"
+            minecraft: "1.21.1"
+            forge: "52.1.14"
+            java: "21"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run Forge server smoke test
+        env:
+          CRAFTLEDGER_MC_TARGET: ${{ matrix.profile }}
+        run: bash scripts/ci/smoke-server.sh
+
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: forge-smoke-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
+          path: tmp/ci/smoke-server.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+  release-summary:
+    name: Release Build Summary
+    runs-on: ubuntu-latest
+    needs:
+      - build-targets
+      - smoke-targets
+    if: always()
+
+    steps:
+      - name: Check matrix result
+        run: |
+          if [ "${{ needs.build-targets.result }}" != "success" ]; then
+            echo "One or more target builds failed. Do not publish release jars until every intended target is green."
+            exit 1
+          fi
+
+          if [ "${{ needs.smoke-targets.result }}" != "success" ]; then
+            echo "One or more target smoke tests failed. Do not publish release jars until every intended target boots cleanly."
+            exit 1
+          fi
+
+          echo "All target jars built, passed server-only metadata validation, and passed Forge dev-server smoke tests."

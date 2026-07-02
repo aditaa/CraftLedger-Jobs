@@ -10,6 +10,12 @@ Run:
 ./gradlew build
 ```
 
+For a scaffolded Minecraft target profile:
+
+```bash
+./gradlew build -Pcraftledger_mc_target=1.19.2
+```
+
 Run only unit tests:
 
 ```bash
@@ -34,6 +40,8 @@ CI is split into these layers:
 - Dependency review for PR dependency changes.
 - CodeQL static analysis for Java.
 
+Unit tests include JSON storage behavior, SQLite storage behavior, configurable message fallback/substitution, transaction tail filtering, and placed-block anti-abuse persistence.
+
 Run the same verification task set locally:
 
 ```bash
@@ -52,6 +60,8 @@ The smoke test passes when the Forge development server reaches the Minecraft `D
 
 Use a Forge 1.20.1 dedicated server with Forge 47.4.10.
 
+For non-primary target profiles, use the exact Minecraft and Forge versions listed in `docs/MULTIVERSION.md`.
+
 1. Place the built jar in the server `mods/` folder.
 2. Start the server.
 3. Confirm the server creates `config/craftledger/`.
@@ -67,8 +77,22 @@ Use a Forge 1.20.1 dedicated server with Forge 47.4.10.
 13. Run `/craftledger reload` as an operator.
 14. Run `/craftledger balance get <player>` as an operator.
 15. Run `/craftledger balance top` and `/craftledger transactions tail 5` as an operator.
-16. Temporarily set `payoutCooldownSeconds` in `jobs.json`, reload, and confirm repeated job actions do not spam payouts.
-17. Stop and restart the server, then confirm balances persisted.
+16. Run `/craftledger player info <player>`, `/craftledger job set <player> miner`, and `/craftledger job clear <player>` as an operator.
+17. Run `/craftledger transactions tail player <player> 5`.
+18. Temporarily set `payoutCooldownSeconds` in `jobs.json`, reload, and confirm repeated job actions do not spam payouts.
+19. Place a configured payout block, break it, and confirm it does not produce a job payout when `trackPlacedBlocks` is enabled.
+20. Stop and restart the server, then confirm balances persisted.
+
+## SQLite Checklist
+
+Run this on a disposable world before using SQLite on a real server:
+
+1. Set `storageBackend = "sqlite"` in `config/craftledger/common.toml`.
+2. Restart the server.
+3. Confirm `world/craftledger/craftledger.sqlite` is created.
+4. Run balance, pay, shop, sell, job join, job payout, and transaction tail commands.
+5. Stop and restart the server, then confirm balances, job assignments, payout totals, and transactions persisted.
+6. Confirm `placed_blocks.json` is still created and block-place anti-abuse still works.
 
 ## Pre-Release Standard
 

@@ -32,7 +32,7 @@ class JobViewsTest {
                 "minecraft:zombie", 2.0D
         )));
 
-        String output = JobViews.info(config, new CommonConfig(true, 100, "coins", "$"), "miner", 1);
+        String output = JobViews.info(config, TestConfigs.common(true, 100, "coins", "$"), "miner", 1);
 
         assertEquals("""
                 Miner (miner)
@@ -51,7 +51,7 @@ class JobViewsTest {
                 "minecraft:coal_ore", 3
         ), Map.of()));
 
-        String output = JobViews.info(config, new CommonConfig(false, 100, "coins", "$"), "miner", 1);
+        String output = JobViews.info(config, TestConfigs.common(false, 100, "coins", "$"), "miner", 1);
 
         assertEquals("""
                 Miner (miner)
@@ -68,6 +68,6 @@ class JobViewsTest {
         assertEquals("""
                 Builder (builder)
                 Coming soon.
-                No payouts configured.""", JobViews.info(config, new CommonConfig(true, 100, "coins", "$"), "builder", 1));
+                No payouts configured.""", JobViews.info(config, TestConfigs.common(true, 100, "coins", "$"), "builder", 1));
     }
 }

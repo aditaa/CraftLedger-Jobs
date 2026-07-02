@@ -10,7 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class JobPayoutStore {
+public final class JobPayoutStore implements JobPayoutDataStore {
     private final Path path;
     private final Map<String, Map<String, Double>> dailyTotals;
 
@@ -30,6 +30,7 @@ public final class JobPayoutStore {
         return new JobPayoutStore(path, totals);
     }
 
+    @Override
     public boolean allowAndRecord(UUID playerUuid, Instant instant, double payout, double dailyLimit) {
         if (dailyLimit <= 0) {
             return true;
@@ -54,6 +55,7 @@ public final class JobPayoutStore {
         return false;
     }
 
+    @Override
     public double total(UUID playerUuid, LocalDate date) {
         return dailyTotals.getOrDefault(date.toString(), Map.of()).getOrDefault(playerUuid.toString(), 0.0D);
     }
@@ -68,6 +70,12 @@ public final class JobPayoutStore {
         }
     }
 
-    private record JobPayoutFile(Map<String, Map<String, Double>> dailyTotals) {
+    private static final class JobPayoutFile {
+        public int version = 1;
+        public Map<String, Map<String, Double>> dailyTotals;
+
+        JobPayoutFile(Map<String, Map<String, Double>> dailyTotals) {
+            this.dailyTotals = dailyTotals;
+        }
     }
 }

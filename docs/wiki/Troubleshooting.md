@@ -22,10 +22,12 @@ Check that the player has joined the job, the event is listed in `jobs.json`, an
 
 If `currencyEnabled = false`, only XP payouts from `blockBreakXp` and `entityKillXp` are paid. Currency payout maps are ignored while currency is disabled.
 
+If the block was placed by a player and `trackPlacedBlocks = true`, the break is intentionally ignored for job payouts.
+
 ## Balances look wrong after restart
 
-Check `world/craftledger/players.json` and server logs for save errors. Back up `world/craftledger/` with the world.
+Check `world/craftledger/players.json` or `world/craftledger/craftledger.sqlite`, depending on `storageBackend`, and review server logs for save errors. Back up `world/craftledger/` with the world.
 
 ## Need recent audit entries
 
-Use `/craftledger transactions tail [lines]`. The command is capped at 50 lines.
+Use `/craftledger transactions tail [lines]` or `/craftledger transactions tail player <player> [lines]`. The command is capped at 50 lines.
