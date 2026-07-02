@@ -5,6 +5,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,5 +64,20 @@ class TransactionLogTest {
 
         String[] fields = Files.readString(path).strip().split("\t", -1);
         assertEquals("0.00", fields[4]);
+    }
+
+    @Test
+    void tailReturnsRecentLinesAndCapsRequest() throws Exception {
+        Path path = tempDir.resolve("transactions.log");
+        TransactionLog log = new TransactionLog(path);
+        for (int index = 1; index <= 55; index++) {
+            log.write("type" + index, "Ada", "uuid", index, "detail");
+        }
+
+        List<String> threeLines = log.tail(3);
+        assertEquals(3, threeLines.size());
+        assertTrue(threeLines.get(0).contains("type53"));
+        assertTrue(threeLines.get(2).contains("type55"));
+        assertEquals(50, log.tail(500).size());
     }
 }

@@ -38,6 +38,8 @@ Controls jobs and event payouts.
 {
   "allowSwitching": true,
   "notifyPayouts": true,
+  "payoutCooldownSeconds": 0,
+  "dailyPayoutLimit": 0,
   "jobs": {
     "miner": {
       "displayName": "Miner",
@@ -56,6 +58,7 @@ Controls jobs and event payouts.
 World data is stored in `world/craftledger/`:
 
 - `players.json`
+- `job_payouts.json`
 - `transactions.log`
 
 Back up these files with the world.
@@ -73,6 +76,19 @@ Current validation rules:
 - Buy offer `maxStack` must be greater than or equal to `0`; `0` means use the item default.
 - `allowSwitching` controls whether players can join another job without leaving first.
 - `notifyPayouts` controls whether players receive chat messages for each job payout.
+- `payoutCooldownSeconds` blocks repeated payouts for the same player and same configured payout id inside the cooldown window. `0` disables the cooldown.
+- `dailyPayoutLimit` caps each player's total job payout earnings per UTC day. `0` disables the cap.
 - Job ids may contain lowercase letters, numbers, underscores, and hyphens.
 - Job payout ids must be namespaced ids such as `minecraft:coal_ore`.
 - Job payouts must be finite and greater than `0`.
+- `payoutCooldownSeconds` must be greater than or equal to `0`.
+- `dailyPayoutLimit` must be finite and greater than or equal to `0`.
+
+## Permissions
+
+CraftLedger Jobs registers Forge permission nodes and falls back to Minecraft operator level `2` for admin-style commands when the default Forge permission handler is active:
+
+- `craftledger_jobs.admin`
+- `craftledger_jobs.balance.other`
+- `craftledger_jobs.balance.top`
+- `craftledger_jobs.transactions`

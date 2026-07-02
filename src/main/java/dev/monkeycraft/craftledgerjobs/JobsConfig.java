@@ -13,6 +13,8 @@ public final class JobsConfig {
 
     public boolean allowSwitching = true;
     public boolean notifyPayouts = true;
+    public int payoutCooldownSeconds = 0;
+    public double dailyPayoutLimit = 0;
     public Map<String, JobDefinition> jobs = new LinkedHashMap<>();
 
     public static JobsConfig load(Path path) throws IOException {
@@ -35,6 +37,12 @@ public final class JobsConfig {
     }
 
     private void validate() {
+        if (payoutCooldownSeconds < 0) {
+            throw new ConfigValidationException("jobs.json payoutCooldownSeconds must be greater than or equal to 0.");
+        }
+        if (!Double.isFinite(dailyPayoutLimit) || dailyPayoutLimit < 0) {
+            throw new ConfigValidationException("jobs.json dailyPayoutLimit must be a finite number greater than or equal to 0.");
+        }
         jobs.forEach((jobId, job) -> {
             if (jobId == null || !SIMPLE_ID.matcher(jobId).matches()) {
                 throw new ConfigValidationException("jobs.json contains invalid job id: " + jobId);

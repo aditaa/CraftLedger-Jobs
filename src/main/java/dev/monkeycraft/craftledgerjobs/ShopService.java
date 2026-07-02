@@ -33,9 +33,14 @@ public final class ShopService {
             return SellResult.none("The item in your hand cannot be sold.");
         }
         int count = Math.min(hand.getCount(), Math.max(1, requestedAmount));
-        hand.shrink(count);
         double total = price * count;
-        ledger.players().deposit(player, total);
+        if (!Double.isFinite(total)) {
+            return SellResult.none("That sale total is too large.");
+        }
+        if (!ledger.players().deposit(player, total)) {
+            return SellResult.none("Your balance cannot receive that sale total.");
+        }
+        hand.shrink(count);
         ledger.transactions().write("sell_hand", player, total, itemId + " x" + count);
         return SellResult.success(total, count, List.of(new SoldItem(itemId, count, total)));
     }
@@ -49,6 +54,7 @@ public final class ShopService {
         double total = 0;
         int itemCount = 0;
         List<SoldItem> soldItems = new ArrayList<>();
+        List<PendingSale> pendingSales = new ArrayList<>();
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
             ItemStack stack = player.getInventory().getItem(slot);
             if (stack.isEmpty()) {
@@ -63,14 +69,22 @@ public final class ShopService {
                 continue;
             }
             int count = stack.getCount();
-            stack.setCount(0);
             double lineTotal = price * count;
+            if (!Double.isFinite(lineTotal) || !Double.isFinite(total + lineTotal)) {
+                return SellResult.none("That sale total is too large.");
+            }
             total += lineTotal;
             itemCount += count;
             soldItems.add(new SoldItem(itemId, count, lineTotal));
+            pendingSales.add(new PendingSale(slot));
         }
         if (total > 0) {
-            ledger.players().deposit(player, total);
+            if (!ledger.players().deposit(player, total)) {
+                return SellResult.none("Your balance cannot receive that sale total.");
+            }
+            for (PendingSale pendingSale : pendingSales) {
+                player.getInventory().getItem(pendingSale.slot()).setCount(0);
+            }
             ledger.transactions().write("sell_all", player, total, normalizedFilter == null ? "configured sellables" : normalizedFilter);
         }
         return total > 0 ? SellResult.success(total, itemCount, soldItems) : SellResult.none("No configured sellable items found.");
@@ -181,5 +195,8 @@ public final class ShopService {
     }
 
     public record SoldItem(String itemId, int count, double total) {
+    }
+
+    private record PendingSale(int slot) {
     }
 }

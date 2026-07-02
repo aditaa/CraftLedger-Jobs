@@ -10,6 +10,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ public final class CraftLedgerCommands {
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
                 .executes(ctx -> balance(ctx.getSource().getPlayerOrException(), ledger))
                 .then(Commands.argument("player", EntityArgument.player())
-                        .requires(source -> source.hasPermission(2))
+                        .requires(CraftLedgerPermissions::canViewOtherBalances)
                         .executes(ctx -> balanceOther(ctx.getSource(), EntityArgument.getPlayer(ctx, "player"), ledger))));
 
         dispatcher.register(Commands.literal("money")
@@ -35,10 +36,10 @@ public final class CraftLedgerCommands {
                 .executes(ctx -> balance(ctx.getSource().getPlayerOrException(), ledger)));
 
         dispatcher.register(Commands.literal("baltop")
-                .requires(source -> source.getEntity() instanceof ServerPlayer)
-                .executes(ctx -> balanceTop(ctx.getSource().getPlayerOrException(), 1, ledger))
+                .requires(CraftLedgerPermissions::canViewBalanceTop)
+                .executes(ctx -> balanceTop(ctx.getSource(), 1, ledger))
                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
-                        .executes(ctx -> balanceTop(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "page"), ledger))));
+                        .executes(ctx -> balanceTop(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "page"), ledger))));
 
         dispatcher.register(Commands.literal("pay")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
@@ -54,9 +55,9 @@ public final class CraftLedgerCommands {
                                 .executes(ctx -> sellHand(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "amount"), ledger))))
                 .then(Commands.literal("all")
                         .executes(ctx -> sellAll(ctx.getSource().getPlayerOrException(), null, ledger))
-                        .then(Commands.argument("item", StringArgumentType.word())
+                        .then(Commands.argument("item_id", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> suggestSellItems(ledger, builder))
-                                .executes(ctx -> sellAll(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), ledger)))));
+                                .executes(ctx -> sellAll(ctx.getSource().getPlayerOrException(), ResourceLocationArgument.getId(ctx, "item_id").toString(), ledger)))));
 
         dispatcher.register(Commands.literal("shop")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
@@ -69,15 +70,15 @@ public final class CraftLedgerCommands {
                         .then(Commands.argument("page", IntegerArgumentType.integer(1))
                                 .executes(ctx -> shopSellList(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "page"), ledger))))
                 .then(Commands.literal("price")
-                        .then(Commands.argument("item", StringArgumentType.word())
+                        .then(Commands.argument("item", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> suggestShopPriceItems(ledger, builder))
-                                .executes(ctx -> shopPrice(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), ledger))))
+                                .executes(ctx -> shopPrice(ctx.getSource().getPlayerOrException(), ResourceLocationArgument.getId(ctx, "item").toString(), ledger))))
                 .then(Commands.literal("buy")
-                        .then(Commands.argument("item", StringArgumentType.word())
+                        .then(Commands.argument("item", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> suggestShopItems(ledger, builder))
-                                .executes(ctx -> shopBuy(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), 1, ledger))
+                                .executes(ctx -> shopBuy(ctx.getSource().getPlayerOrException(), ResourceLocationArgument.getId(ctx, "item").toString(), 1, ledger))
                                 .then(Commands.argument("amount", IntegerArgumentType.integer(1, 2304))
-                                        .executes(ctx -> shopBuy(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "item"), IntegerArgumentType.getInteger(ctx, "amount"), ledger))))));
+                                        .executes(ctx -> shopBuy(ctx.getSource().getPlayerOrException(), ResourceLocationArgument.getId(ctx, "item").toString(), IntegerArgumentType.getInteger(ctx, "amount"), ledger))))));
 
         dispatcher.register(Commands.literal("jobs")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
@@ -104,16 +105,24 @@ public final class CraftLedgerCommands {
                                         .executes(ctx -> jobInfo(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "job"), IntegerArgumentType.getInteger(ctx, "page"), ledger))))));
 
         dispatcher.register(Commands.literal("craftledger")
-                .requires(source -> source.hasPermission(2))
+                .requires(CraftLedgerPermissions::canUseCraftLedgerRoot)
                 .then(Commands.literal("reload")
+                        .requires(CraftLedgerPermissions::canAdmin)
                         .executes(ctx -> reload(ctx.getSource(), ledger)))
                 .then(Commands.literal("shop")
+                        .requires(CraftLedgerPermissions::canAdmin)
                         .then(Commands.literal("reload")
                                 .executes(ctx -> reload(ctx.getSource(), ledger))))
                 .then(Commands.literal("jobs")
+                                .requires(CraftLedgerPermissions::canAdmin)
                                 .then(Commands.literal("reload")
                                         .executes(ctx -> reload(ctx.getSource(), ledger))))
                 .then(Commands.literal("balance")
+                        .requires(CraftLedgerPermissions::canAdmin)
+                        .then(Commands.literal("top")
+                                .executes(ctx -> balanceTop(ctx.getSource(), 1, ledger))
+                                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> balanceTop(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "page"), ledger))))
                         .then(Commands.literal("get")
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
@@ -122,17 +131,32 @@ public final class CraftLedgerCommands {
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
                                         .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
-                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "set", ledger)))))
+                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "set", ledger))))
+                                .then(Commands.argument("selector", EntityArgument.player())
+                                        .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
+                                                .executes(ctx -> adminBalance(ctx.getSource(), EntityArgument.getPlayer(ctx, "selector"), DoubleArgumentType.getDouble(ctx, "amount"), "set", ledger)))))
                         .then(Commands.literal("add")
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
                                         .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01D))
-                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "add", ledger)))))
+                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "add", ledger))))
+                                .then(Commands.argument("selector", EntityArgument.player())
+                                        .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01D))
+                                                .executes(ctx -> adminBalance(ctx.getSource(), EntityArgument.getPlayer(ctx, "selector"), DoubleArgumentType.getDouble(ctx, "amount"), "add", ledger)))))
                         .then(Commands.literal("take")
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .suggests((ctx, builder) -> suggestBalanceTargets(ctx.getSource(), ledger, builder))
                                         .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01D))
-                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "take", ledger)))))));
+                                                .executes(ctx -> adminBalance(ctx.getSource(), StringArgumentType.getString(ctx, "player"), DoubleArgumentType.getDouble(ctx, "amount"), "take", ledger))))
+                                .then(Commands.argument("selector", EntityArgument.player())
+                                        .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01D))
+                                                .executes(ctx -> adminBalance(ctx.getSource(), EntityArgument.getPlayer(ctx, "selector"), DoubleArgumentType.getDouble(ctx, "amount"), "take", ledger))))))
+                .then(Commands.literal("transactions")
+                        .requires(CraftLedgerPermissions::canViewTransactions)
+                        .then(Commands.literal("tail")
+                                .executes(ctx -> transactionTail(ctx.getSource(), 10, ledger))
+                                .then(Commands.argument("lines", IntegerArgumentType.integer(1, 50))
+                                        .executes(ctx -> transactionTail(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "lines"), ledger))))));
     }
 
     private static int balance(ServerPlayer player, Ledger ledger) {
@@ -140,8 +164,8 @@ public final class CraftLedgerCommands {
         return 1;
     }
 
-    private static int balanceTop(ServerPlayer player, int page, Ledger ledger) {
-        player.sendSystemMessage(TextUtil.success(BalanceViews.topBalances(ledger.players().topBalances(), ledger.common(), page)));
+    private static int balanceTop(CommandSourceStack source, int page, Ledger ledger) {
+        source.sendSuccess(() -> TextUtil.success(BalanceViews.topBalances(ledger.players().topBalances(), ledger.common(), page)), false);
         return 1;
     }
 
@@ -155,11 +179,19 @@ public final class CraftLedgerCommands {
             source.sendSystemMessage(TextUtil.error("You cannot pay yourself."));
             return 0;
         }
+        if (!ledger.players().canDeposit(target, amount)) {
+            source.sendSystemMessage(TextUtil.error("That player cannot receive that amount."));
+            return 0;
+        }
         if (!ledger.players().withdraw(source, amount)) {
             source.sendSystemMessage(TextUtil.error("Insufficient funds."));
             return 0;
         }
-        ledger.players().deposit(target, amount);
+        if (!ledger.players().deposit(target, amount)) {
+            ledger.players().deposit(source, amount);
+            source.sendSystemMessage(TextUtil.error("Payment failed and your money was returned."));
+            return 0;
+        }
         ledger.transactions().write("pay_send", source, amount, "to " + target.getGameProfile().getName());
         ledger.transactions().write("pay_receive", target, amount, "from " + source.getGameProfile().getName());
         source.sendSystemMessage(TextUtil.success("Paid " + target.getGameProfile().getName() + " " + ledger.common().format(amount) + ". Balance: " + ledger.common().format(ledger.players().balance(source))));
@@ -287,7 +319,14 @@ public final class CraftLedgerCommands {
             source.sendFailure(TextUtil.error("Unknown stored player: " + playerTarget + ". The player must join once before offline balance commands can target them."));
             return 0;
         }
-        PlayerStore.KnownPlayer player = target.get();
+        return updateBalance(source, target.get(), amount, mode, ledger);
+    }
+
+    private static int adminBalance(CommandSourceStack source, ServerPlayer player, double amount, String mode, Ledger ledger) {
+        return updateBalance(source, new PlayerStore.KnownPlayer(player.getUUID(), player.getGameProfile().getName()), amount, mode, ledger);
+    }
+
+    private static int updateBalance(CommandSourceStack source, PlayerStore.KnownPlayer player, double amount, String mode, Ledger ledger) {
         if ("set".equals(mode)) {
             ledger.players().set(player.uuid(), player.name(), amount);
         } else if ("add".equals(mode)) {
@@ -297,6 +336,16 @@ public final class CraftLedgerCommands {
         }
         ledger.transactions().write("admin_balance_" + mode, player.name(), player.uuid().toString(), amount, source.getTextName());
         source.sendSuccess(() -> TextUtil.success("Balance updated for " + player.name() + ": " + ledger.common().format(ledger.players().balance(player.uuid(), player.name()))), true);
+        return 1;
+    }
+
+    private static int transactionTail(CommandSourceStack source, int lines, Ledger ledger) {
+        List<String> entries = ledger.transactions().tail(lines);
+        if (entries.isEmpty()) {
+            source.sendSuccess(() -> TextUtil.success("No transactions logged."), false);
+            return 1;
+        }
+        source.sendSuccess(() -> TextUtil.success("Recent transactions:\n" + String.join("\n", entries)), false);
         return 1;
     }
 

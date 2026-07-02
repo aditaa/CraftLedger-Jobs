@@ -75,12 +75,14 @@ Player commands:
 Operator commands:
 
 - `/craftledger reload`
+- `/craftledger balance top [page]`
 - `/craftledger balance get <player>`
 - `/craftledger balance set <player> <amount>`
 - `/craftledger balance add <player> <amount>`
 - `/craftledger balance take <player> <amount>`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
+- `/craftledger transactions tail [lines]`
 
 Offline admin balance commands can target players by last known name or UUID after they have joined the server at least once.
 
@@ -96,11 +98,19 @@ Config files are created in `config/craftledger/`:
 World data is stored in `world/craftledger/`:
 
 - `players.json`
+- `job_payouts.json`
 - `transactions.log`
 
 Player data is saved by UUID with last known player name. Writes go through a temporary file and atomic replace when the filesystem supports it.
 
 See [Configuration](docs/CONFIGURATION.md) for examples.
+
+Current permission gates use operator level 2 as the fallback:
+
+- `craftledger_jobs.admin`
+- `craftledger_jobs.balance.other`
+- `craftledger_jobs.balance.top`
+- `craftledger_jobs.transactions`
 
 ## Build
 

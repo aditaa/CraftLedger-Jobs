@@ -25,6 +25,8 @@ class JobsConfigTest {
         assertTrue(Files.exists(path));
         assertTrue(config.allowSwitching);
         assertTrue(config.notifyPayouts);
+        assertEquals(0, config.payoutCooldownSeconds);
+        assertEquals(0.0D, config.dailyPayoutLimit);
         assertTrue(config.jobs.containsKey("miner"));
         assertTrue(config.jobs.containsKey("farmer"));
         assertTrue(config.jobs.containsKey("hunter"));
@@ -101,6 +103,8 @@ class JobsConfigTest {
                 {
                   "allowSwitching": false,
                   "notifyPayouts": false,
+                  "payoutCooldownSeconds": 10,
+                  "dailyPayoutLimit": 250.0,
                   "jobs": {
                     "miner": {
                       "displayName": "Miner",
@@ -118,6 +122,30 @@ class JobsConfigTest {
 
         assertFalse(config.allowSwitching);
         assertFalse(config.notifyPayouts);
+        assertEquals(10, config.payoutCooldownSeconds);
+        assertEquals(250.0D, config.dailyPayoutLimit);
         assertEquals("Dig carefully.", config.jobs.get("miner").description);
+    }
+
+    @Test
+    void loadRejectsInvalidJobLimits() throws Exception {
+        Path path = tempDir.resolve("jobs.json");
+        Files.writeString(path, """
+                {
+                  "payoutCooldownSeconds": -1,
+                  "jobs": {}
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+
+        Files.writeString(path, """
+                {
+                  "dailyPayoutLimit": -1.0,
+                  "jobs": {}
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
     }
 }

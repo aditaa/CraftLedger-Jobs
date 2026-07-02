@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerStoreTest {
@@ -65,6 +66,15 @@ class PlayerStoreTest {
 
         store.take(uuid, "Ada", 200.0D);
         assertEquals(0.0D, store.get(uuid, "Ada").balance);
+    }
+
+    @Test
+    void balanceMathReportsOverflowFailure() throws Exception {
+        PlayerStore store = PlayerStore.load(tempDir.resolve("players.json"), 10.0D);
+        UUID uuid = UUID.randomUUID();
+        store.set(uuid, "Ada", Double.MAX_VALUE);
+
+        assertFalse(EconomyRules.canAddToBalance(store.get(uuid, "Ada").balance, Double.MAX_VALUE));
     }
 
     @Test
