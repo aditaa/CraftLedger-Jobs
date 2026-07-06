@@ -94,7 +94,7 @@ jobs:
   publish:
     name: Publish Minecraft ${{ matrix.minecraft }} / Forge ${{ matrix.forge }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     environment: curseforge
     needs:
       - prepare
