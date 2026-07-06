@@ -13,7 +13,9 @@
 3. Start the server.
 4. Confirm `config/craftledger/` is created.
 5. Join from a client without CraftLedger Jobs installed.
-6. Run `/balance` and the rest of the manual test checklist.
+6. Run `/balance` and the rest of the [manual test checklist](Testing).
+
+Volunteer beta testers using a normal Minecraft client should follow [Volunteer Beta Testing](Volunteer-Beta-Testing) instead.
 
 ## Server Data
 
