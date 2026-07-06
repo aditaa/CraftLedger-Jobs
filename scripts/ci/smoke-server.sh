@@ -42,9 +42,9 @@ if [[ -n "$PROVIDED_JAR" ]]; then
 else
   ./gradlew build "${GRADLE_TARGET_ARGS[@]}" --console=plain --no-daemon
 
-  JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name "craftledger_jobs-mc${MINECRAFT_VERSION}-forge${FORGE_VERSION}-*.jar" ! -name '*-plain.jar' | head -n 1)"
+  JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name "craftledger_jobs-mc${MINECRAFT_VERSION}-forge${FORGE_VERSION}-*-all.jar" | head -n 1)"
   if [[ -z "$JAR_PATH" && -z "$MC_TARGET" ]]; then
-    JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name 'craftledger_jobs-*.jar' ! -name '*-plain.jar' | head -n 1)"
+    JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name 'craftledger_jobs-*-all.jar' | head -n 1)"
   fi
 fi
 

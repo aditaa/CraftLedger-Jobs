@@ -359,6 +359,17 @@ tasks.register('validateRepositoryFiles') {
                 throw new GradleException("Required repository file is missing: ${path}")
             }
         }
+
+        [
+                '.github/workflows/release-build.yml',
+                '.github/workflows/curseforge-publish.yml',
+                'scripts/ci/smoke-server.sh'
+        ].each { path ->
+            def text = file(path).getText('UTF-8')
+            if (!text.contains('*-all.jar')) {
+                throw new GradleException("Release artifact selection must prefer jarJar all jars in ${path}")
+            }
+        }
     }
 }
 
