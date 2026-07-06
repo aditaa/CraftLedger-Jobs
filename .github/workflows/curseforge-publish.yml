@@ -149,11 +149,12 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-tag: v${{ inputs.version }}
+          github-name: CraftLedger Jobs ${{ inputs.version }}
           github-draft: false
           github-prerelease: ${{ inputs.release_type != 'release' }}
           github-generate-changelog: false
+          curseforge-name: CraftLedger Jobs ${{ inputs.version }} for Minecraft ${{ matrix.minecraft }} (Forge ${{ matrix.forge }})
           files: ${{ steps.jar.outputs.path }}
-          name: CraftLedger Jobs ${{ inputs.version }} for Minecraft ${{ matrix.minecraft }} (Forge ${{ matrix.forge }})
           version: ${{ inputs.version }}-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
           version-type: ${{ inputs.release_type }}
           changelog: ${{ inputs.changelog }}

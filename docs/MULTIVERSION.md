@@ -111,7 +111,7 @@ Required GitHub configuration:
 
 The workflow requires a `confirm` input of `publish` before any upload job can run. Do not run it until the target profile is release-certified and manual staging has passed.
 
-GitHub Release tags are created as `v<version>`, for example `v0.1.0-beta.1`. Beta and alpha uploads are marked as GitHub prereleases.
+GitHub Release tags are created as `v<version>`, for example `v0.1.0-beta.1`. Beta and alpha uploads are marked as GitHub prereleases. The GitHub Release title is version-wide, while CurseForge file names include the Minecraft and Forge target.
 
 CurseForge files are uploaded one Minecraft/Forge target at a time with:
 
