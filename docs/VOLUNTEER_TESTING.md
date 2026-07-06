@@ -4,6 +4,27 @@ Thank you for helping test CraftLedger Jobs. This guide is for volunteer players
 
 For beta testing, install the CraftLedger Jobs jar in your own Forge client, start a fresh singleplayer world, and run the tests below.
 
+## Super Quick Version
+
+Use this if you already use CurseForge and just want the shortest path.
+
+1. Download the beta jar from the CraftLedger Jobs releases page.
+2. Open CurseForge.
+3. Create a custom Minecraft profile for the same Minecraft version as the beta jar.
+4. Choose Forge as the modloader.
+5. Open the profile folder.
+6. Put the beta jar in the `mods` folder.
+7. Launch the profile.
+8. Click Singleplayer.
+9. Create a new world with cheats turned on.
+10. Run `/balance`.
+11. Run `/jobs`.
+12. Run `/shop list`.
+13. Take screenshots with `F2`.
+14. Report anything broken, or report that the test worked.
+
+If you get stuck before step 10, send a screenshot of where you got stuck and include the beta jar name you downloaded.
+
 ## What You Need
 
 - Minecraft Java Edition.
