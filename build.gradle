@@ -222,8 +222,8 @@ tasks.named('jar', Jar).configure {
         ])
     }
 
-    // This is the preferred method to reobfuscate your jar file
-    finalizedBy 'reobfJar'
+    // ForgeGradle 6 exposes reobfJar for older targets, while newer targets may not.
+    finalizedBy tasks.matching { it.name == 'reobfJar' }
 }
 
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing:
