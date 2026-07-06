@@ -352,7 +352,8 @@ tasks.register('validateRepositoryFiles') {
                 'docs/TESTING.md',
                 'docs/MULTIVERSION.md',
                 '.github/workflows/ci.yml',
-                '.github/workflows/release-build.yml'
+                '.github/workflows/release-build.yml',
+                '.github/workflows/curseforge-publish.yml'
         ].each { path ->
             if (!file(path).isFile()) {
                 throw new GradleException("Required repository file is missing: ${path}")

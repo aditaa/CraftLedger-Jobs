@@ -114,4 +114,25 @@ class PlayerStoreTest {
                 new PlayerStore.BalanceEntry("Bert", 100.0D)
         ), store.topBalances());
     }
+
+    @Test
+    void jobProgressPersistsByJob() throws Exception {
+        Path path = tempDir.resolve("players.json");
+        UUID uuid = UUID.randomUUID();
+        JobsConfig config = new JobsConfig();
+        config.baseJobXpRequired = 100.0D;
+        config.jobXpGrowth = 1.0D;
+
+        PlayerStore store = PlayerStore.load(path, 10.0D);
+        store.setJobProgress(uuid, "Ada", "miner", 3, 25.0D);
+        store.setJobProgress(uuid, "Ada", "farmer", 2, 10.0D);
+
+        PlayerStore reloaded = PlayerStore.load(path, 10.0D);
+
+        assertEquals(new PlayerStore.JobProgress(3, 25.0D), reloaded.jobProgress(uuid, "Ada", "miner"));
+        assertEquals(new PlayerStore.JobProgress(2, 10.0D), reloaded.jobProgress(uuid, "Ada", "farmer"));
+
+        reloaded.resetJobProgress(uuid, "Ada", "miner");
+        assertEquals(new PlayerStore.JobProgress(1, 0.0D), reloaded.jobProgress(uuid, "Ada", "miner"));
+    }
 }

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 import java.util.UUID;
 
 public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataStore, TransactionStore, AutoCloseable {
@@ -131,6 +132,22 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
             statement.executeUpdate();
         } catch (SQLException ex) {
             CraftLedgerJobs.LOGGER.error("Failed to update CraftLedger SQLite balance", ex);
+        }
+    }
+
+    synchronized void importJobProgress(UUID uuid, String job, int level, double xp) {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO job_progress(uuid, job, level, xp)
+                VALUES(?, ?, ?, ?)
+                ON CONFLICT(uuid, job) DO UPDATE SET level = excluded.level, xp = excluded.xp
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, normalizeJob(job));
+            statement.setInt(3, Math.max(1, level));
+            statement.setDouble(4, Math.max(0.0D, Double.isFinite(xp) ? xp : 0.0D));
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to import SQLite job progress for " + uuid, ex);
         }
     }
 
@@ -268,6 +285,74 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
     @Override
     public synchronized String job(UUID uuid, String name) {
         return get(uuid, name).job;
+    }
+
+    @Override
+    public synchronized PlayerStore.JobProgress jobProgress(ServerPlayer player, String job) {
+        return jobProgress(player.getUUID(), player.getGameProfile().getName(), job);
+    }
+
+    @Override
+    public synchronized PlayerStore.JobProgress jobProgress(UUID uuid, String name, String job) {
+        ensurePlayer(uuid, name);
+        String normalized = normalizeJob(job);
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT level, xp
+                FROM job_progress
+                WHERE uuid = ? AND job = ?
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, normalized);
+            try (ResultSet results = statement.executeQuery()) {
+                if (results.next()) {
+                    return new PlayerStore.JobProgress(Math.max(1, results.getInt("level")), Math.max(0.0D, results.getDouble("xp")));
+                }
+            }
+        } catch (SQLException ex) {
+            CraftLedgerJobs.LOGGER.error("Failed to read CraftLedger SQLite job progress", ex);
+        }
+        return new PlayerStore.JobProgress(1, 0.0D);
+    }
+
+    @Override
+    public synchronized PlayerStore.JobProgress addJobExperience(ServerPlayer player, String job, double amount, JobsConfig config) {
+        PlayerStore.JobProgress current = jobProgress(player, job);
+        JobProgression.Progress updated = JobProgression.apply(current.level(), current.xp(), amount, config);
+        setJobProgress(player.getUUID(), player.getGameProfile().getName(), job, updated.level(), updated.xp());
+        return new PlayerStore.JobProgress(updated.level(), updated.xp(), updated.gainedXp(), updated.leveled());
+    }
+
+    @Override
+    public synchronized void setJobProgress(UUID uuid, String name, String job, int level, double xp) {
+        ensurePlayer(uuid, name);
+        try (PreparedStatement statement = connection.prepareStatement("""
+                INSERT INTO job_progress(uuid, job, level, xp)
+                VALUES(?, ?, ?, ?)
+                ON CONFLICT(uuid, job) DO UPDATE SET level = excluded.level, xp = excluded.xp
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, normalizeJob(job));
+            statement.setInt(3, Math.max(1, level));
+            statement.setDouble(4, Math.max(0.0D, Double.isFinite(xp) ? xp : 0.0D));
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            CraftLedgerJobs.LOGGER.error("Failed to update CraftLedger SQLite job progress", ex);
+        }
+    }
+
+    @Override
+    public synchronized void resetJobProgress(UUID uuid, String name, String job) {
+        ensurePlayer(uuid, name);
+        try (PreparedStatement statement = connection.prepareStatement("""
+                DELETE FROM job_progress
+                WHERE uuid = ? AND job = ?
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, normalizeJob(job));
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            CraftLedgerJobs.LOGGER.error("Failed to reset CraftLedger SQLite job progress", ex);
+        }
     }
 
     @Override
@@ -470,6 +555,15 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
                     )
                     """);
             statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS job_progress (
+                        uuid TEXT NOT NULL,
+                        job TEXT NOT NULL,
+                        level INTEGER NOT NULL,
+                        xp REAL NOT NULL,
+                        PRIMARY KEY(uuid, job)
+                    )
+                    """);
+            statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS transactions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         created_at TEXT NOT NULL,
@@ -529,5 +623,9 @@ public final class SqliteLedgerStore implements PlayerDataStore, JobPayoutDataSt
 
     private static String displayName(String name, String fallback) {
         return name == null || name.isBlank() ? fallback : name;
+    }
+
+    private static String normalizeJob(String job) {
+        return job == null ? "" : job.toLowerCase(Locale.ROOT);
     }
 }

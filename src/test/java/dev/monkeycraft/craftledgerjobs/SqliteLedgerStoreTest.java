@@ -25,6 +25,7 @@ class SqliteLedgerStoreTest {
             assertEquals(25.0D, store.balance(uuid, "Ada"));
             store.add(uuid, "Ada", 10.0D);
             store.setJob(uuid, "Ada", "miner");
+            store.setJobProgress(uuid, "Ada", "miner", 4, 33.0D);
             assertTrue(store.allowAndRecord(uuid, Instant.parse("2026-07-02T12:00:00Z"), 5.0D, 10.0D));
             store.write("admin_balance_add", "Ada", uuid.toString(), 10.0D, "test");
         }
@@ -32,6 +33,7 @@ class SqliteLedgerStoreTest {
         try (SqliteLedgerStore store = SqliteLedgerStore.load(path, 99.0D)) {
             assertEquals(35.0D, store.balance(uuid, "Ignored"));
             assertEquals("miner", store.job(uuid, "Ada"));
+            assertEquals(new PlayerStore.JobProgress(4, 33.0D), store.jobProgress(uuid, "Ada", "miner"));
             assertEquals(5.0D, store.total(uuid, LocalDate.parse("2026-07-02")));
             assertEquals(List.of(new PlayerStore.BalanceEntry("Ada", 35.0D)), store.topBalances());
             assertEquals(uuid, store.findKnownPlayer("ada").orElseThrow().uuid());

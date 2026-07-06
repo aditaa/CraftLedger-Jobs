@@ -204,6 +204,53 @@ public final class PlayerStore implements PlayerDataStore {
     }
 
     @Override
+    public JobProgress jobProgress(ServerPlayer player, String job) {
+        return jobProgress(player.getUUID(), player.getGameProfile().getName(), job);
+    }
+
+    @Override
+    public JobProgress jobProgress(UUID uuid, String name, String job) {
+        PlayerAccount account = get(uuid, name);
+        account.normalizeProgress();
+        String normalized = normalizeJob(job);
+        return new JobProgress(
+                account.jobLevels.getOrDefault(normalized, 1),
+                account.jobExperience.getOrDefault(normalized, 0.0D)
+        );
+    }
+
+    @Override
+    public JobProgress addJobExperience(ServerPlayer player, String job, double amount, JobsConfig config) {
+        PlayerAccount account = get(player);
+        account.normalizeProgress();
+        String normalized = normalizeJob(job);
+        JobProgress current = jobProgress(player.getUUID(), player.getGameProfile().getName(), normalized);
+        JobProgression.Progress updated = JobProgression.apply(current.level(), current.xp(), amount, config);
+        account.jobLevels.put(normalized, updated.level());
+        account.jobExperience.put(normalized, updated.xp());
+        save();
+        return new JobProgress(updated.level(), updated.xp(), updated.gainedXp(), updated.leveled());
+    }
+
+    @Override
+    public void setJobProgress(UUID uuid, String name, String job, int level, double xp) {
+        PlayerAccount account = get(uuid, name);
+        account.normalizeProgress();
+        account.jobLevels.put(normalizeJob(job), Math.max(1, level));
+        account.jobExperience.put(normalizeJob(job), Math.max(0.0D, Double.isFinite(xp) ? xp : 0.0D));
+        save();
+    }
+
+    @Override
+    public void resetJobProgress(UUID uuid, String name, String job) {
+        PlayerAccount account = get(uuid, name);
+        account.normalizeProgress();
+        account.jobLevels.remove(normalizeJob(job));
+        account.jobExperience.remove(normalizeJob(job));
+        save();
+    }
+
+    @Override
     public void save() {
         try {
             JsonFiles.writeAtomic(path, new PlayerFile(players));
@@ -216,13 +263,30 @@ public final class PlayerStore implements PlayerDataStore {
         public String lastKnownName;
         public double balance;
         public String job;
+        public Map<String, Integer> jobLevels = new LinkedHashMap<>();
+        public Map<String, Double> jobExperience = new LinkedHashMap<>();
         public boolean initialized;
+
+        void normalizeProgress() {
+            if (jobLevels == null) {
+                jobLevels = new LinkedHashMap<>();
+            }
+            if (jobExperience == null) {
+                jobExperience = new LinkedHashMap<>();
+            }
+        }
     }
 
     public record KnownPlayer(UUID uuid, String name) {
     }
 
     public record BalanceEntry(String name, double balance) {
+    }
+
+    public record JobProgress(int level, double xp, double gainedXp, boolean leveled) {
+        public JobProgress(int level, double xp) {
+            this(level, xp, 0.0D, false);
+        }
     }
 
     private static final class PlayerFile {
@@ -236,5 +300,9 @@ public final class PlayerStore implements PlayerDataStore {
 
     private static String displayName(PlayerAccount account, String fallback) {
         return account.lastKnownName == null || account.lastKnownName.isBlank() ? fallback : account.lastKnownName;
+    }
+
+    private static String normalizeJob(String job) {
+        return job == null ? "" : job.toLowerCase(java.util.Locale.ROOT);
     }
 }

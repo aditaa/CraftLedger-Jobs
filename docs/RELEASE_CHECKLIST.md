@@ -39,3 +39,7 @@ CraftLedger Jobs is not ready for a first public jar release yet. Use this check
 - GitHub release notes are written.
 - Release jar is attached to GitHub release.
 - CurseForge description and project metadata are ready.
+- Repository variable `CURSEFORGE_PROJECT_ID` is set.
+- Repository secret `CURSEFORGE_TOKEN` is set.
+- The `curseforge` GitHub Actions environment is protected by required reviewers.
+- `CurseForge Publish` is run manually only after staging evidence is complete.

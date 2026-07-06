@@ -72,6 +72,7 @@ Player commands:
 - `/jobs [page]`
 - `/job join <job>`
 - `/job current`
+- `/job progress [job]`
 - `/job leave`
 - `/job info [job] [page]`
 
@@ -86,6 +87,8 @@ Operator commands:
 - `/craftledger player info <player>`
 - `/craftledger job set <player> <job>`
 - `/craftledger job clear <player>`
+- `/craftledger job level set <player> <job> <level>`
+- `/craftledger job level reset <player> <job>`
 - `/craftledger storage migrate json-to-sqlite [dry-run]`
 - `/craftledger shop reload`
 - `/craftledger jobs reload`
@@ -164,6 +167,8 @@ Build a named target profile:
 See [Multi-Version Release Scaffolding](docs/MULTIVERSION.md) before publishing jars for any non-primary target.
 
 Release candidate jars for all scaffolded target profiles are built by the `Release Build` GitHub Actions workflow on `v*` tags or manual dispatch.
+
+CurseForge uploads are handled by a separate manual `CurseForge Publish` workflow after release validation is complete.
 
 For local WSL/Windows setup details, see [Development Environment](docs/DEVELOPMENT.md).
 

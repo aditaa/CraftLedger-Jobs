@@ -49,6 +49,8 @@ XP payout maps:
 
 Keep `trackPlacedBlocks = true` on public servers. Player-placed blocks are tracked in `world/craftledger/placed_blocks.json` and do not produce job payouts when broken.
 
+Job progression is enabled by default. Successful job payouts award job XP, job levels increase the payout multiplier, and progress is stored per player and per job.
+
 ## `messages.json`
 
 Configure command messages and payout messages. Missing keys fall back to built-in defaults. Placeholders use `{name}` syntax.

@@ -28,6 +28,12 @@ class JobsConfigTest {
         assertTrue(config.notifyPayouts);
         assertTrue(config.trackPlacedBlocks);
         assertEquals(50000, config.maxTrackedPlacedBlocks);
+        assertTrue(config.progressionEnabled);
+        assertEquals(100, config.maxJobLevel);
+        assertEquals(100.0D, config.baseJobXpRequired);
+        assertEquals(1.25D, config.jobXpGrowth);
+        assertEquals(10.0D, config.jobXpPerPayout);
+        assertEquals(0.02D, config.payoutMultiplierPerLevel);
         assertEquals(0, config.payoutCooldownSeconds);
         assertEquals(0.0D, config.dailyPayoutLimit);
         assertTrue(config.jobs.containsKey("miner"));
@@ -134,6 +140,12 @@ class JobsConfigTest {
                   "notifyPayouts": false,
                   "trackPlacedBlocks": false,
                   "maxTrackedPlacedBlocks": 123,
+                  "progressionEnabled": false,
+                  "maxJobLevel": 50,
+                  "baseJobXpRequired": 25.0,
+                  "jobXpGrowth": 1.1,
+                  "jobXpPerPayout": 4.0,
+                  "payoutMultiplierPerLevel": 0.05,
                   "payoutCooldownSeconds": 10,
                   "dailyPayoutLimit": 250.0,
                   "jobs": {
@@ -160,6 +172,12 @@ class JobsConfigTest {
         assertFalse(config.notifyPayouts);
         assertFalse(config.trackPlacedBlocks);
         assertEquals(123, config.maxTrackedPlacedBlocks);
+        assertFalse(config.progressionEnabled);
+        assertEquals(50, config.maxJobLevel);
+        assertEquals(25.0D, config.baseJobXpRequired);
+        assertEquals(1.1D, config.jobXpGrowth);
+        assertEquals(4.0D, config.jobXpPerPayout);
+        assertEquals(0.05D, config.payoutMultiplierPerLevel);
         assertEquals(10, config.payoutCooldownSeconds);
         assertEquals(250.0D, config.dailyPayoutLimit);
         assertEquals(3, config.jobs.get("miner").blockBreakXp.get("minecraft:coal_ore"));
@@ -172,6 +190,24 @@ class JobsConfigTest {
         Files.writeString(path, """
                 {
                   "payoutCooldownSeconds": -1,
+                  "jobs": {}
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+
+        Files.writeString(path, """
+                {
+                  "maxJobLevel": 0,
+                  "jobs": {}
+                }
+                """);
+
+        assertThrows(ConfigValidationException.class, () -> JobsConfig.load(path));
+
+        Files.writeString(path, """
+                {
+                  "jobXpGrowth": 0.5,
                   "jobs": {}
                 }
                 """);
