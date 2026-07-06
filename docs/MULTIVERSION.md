@@ -101,7 +101,7 @@ If one target fails, the workflow still tries the rest of the matrix so maintain
 
 ## CurseForge Publishing
 
-The `CurseForge Publish` workflow is manual only. It builds the selected target profile or every profile, runs the Forge dev-server smoke test, and uploads the resulting jar to CurseForge.
+The `CurseForge Publish` workflow is manual only. It builds the selected target profile or every profile, runs the Forge dev-server smoke test, uploads the resulting jar to CurseForge, and attaches the same jar to the matching GitHub Release.
 
 Required GitHub configuration:
 
@@ -110,6 +110,8 @@ Required GitHub configuration:
 - GitHub Actions environment `curseforge`: recommended with required reviewer approval.
 
 The workflow requires a `confirm` input of `publish` before any upload job can run. Do not run it until the target profile is release-certified and manual staging has passed.
+
+GitHub Release tags are created as `v<version>`, for example `v0.1.0-beta.1`. Beta and alpha uploads are marked as GitHub prereleases. The GitHub Release title is version-wide, while CurseForge file names include the Minecraft and Forge target.
 
 CurseForge files are uploaded one Minecraft/Forge target at a time with:
 

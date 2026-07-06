@@ -44,7 +44,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   prepare:
@@ -100,6 +100,7 @@ jobs:
       - prepare
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
@@ -141,13 +142,19 @@ jobs:
           test -n "$jar_path"
           echo "path=$jar_path" >> "$GITHUB_OUTPUT"
 
-      - name: Publish to CurseForge
+      - name: Publish to CurseForge and GitHub Releases
         uses: Kira-NT/mc-publish@v3.3
         with:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-tag: v${{ inputs.version }}
+          github-name: CraftLedger Jobs ${{ inputs.version }}
+          github-draft: false
+          github-prerelease: ${{ inputs.release_type != 'release' }}
+          github-generate-changelog: false
+          curseforge-name: CraftLedger Jobs ${{ inputs.version }} for Minecraft ${{ matrix.minecraft }} (Forge ${{ matrix.forge }})
           files: ${{ steps.jar.outputs.path }}
-          name: CraftLedger Jobs ${{ inputs.version }} for Minecraft ${{ matrix.minecraft }} (Forge ${{ matrix.forge }})
           version: ${{ inputs.version }}-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
           version-type: ${{ inputs.release_type }}
           changelog: ${{ inputs.changelog }}
