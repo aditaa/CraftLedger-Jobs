@@ -37,7 +37,7 @@ CraftLedger Jobs is not ready for a first public jar release yet. Use this check
 - Version number is updated.
 - A `v*` tag release build has produced reviewed workflow artifacts.
 - GitHub release notes are written.
-- Release jar is attached to GitHub release.
+- Release jar is attached to the matching GitHub release by the `CurseForge Publish` workflow.
 - CurseForge description and project metadata are ready.
 - Repository variable `CURSEFORGE_PROJECT_ID` is set.
 - Repository secret `CURSEFORGE_TOKEN` is set.
