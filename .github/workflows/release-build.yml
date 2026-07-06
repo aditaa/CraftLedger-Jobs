@@ -138,7 +138,7 @@ jobs:
   smoke-targets:
     name: Smoke Minecraft ${{ matrix.minecraft }} / Forge ${{ matrix.forge }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     needs:
       - build-targets
     strategy:
@@ -187,9 +187,25 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Download target artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: craftledger-jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
+          path: tmp/ci/release-artifacts
+
+      - name: Locate downloaded release jar
+        id: smoke-jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_path="$(find tmp/ci/release-artifacts -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*.jar' ! -name '*-plain.jar' | head -n 1)"
+          test -n "$jar_path"
+          echo "path=$jar_path" >> "$GITHUB_OUTPUT"
+
       - name: Run Forge server smoke test
         env:
           CRAFTLEDGER_MC_TARGET: ${{ matrix.profile }}
+          CRAFTLEDGER_SMOKE_JAR: ${{ steps.smoke-jar.outputs.path }}
         run: bash scripts/ci/smoke-server.sh
 
       - name: Upload smoke log
@@ -222,4 +238,4 @@ jobs:
             exit 1
           fi
 
-          echo "All target jars built, passed server-only metadata validation, and passed Forge dev-server smoke tests."
+          echo "All target jars built, passed server-only metadata validation, and passed Forge server smoke tests."

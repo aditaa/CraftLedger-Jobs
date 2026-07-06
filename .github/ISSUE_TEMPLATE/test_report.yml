@@ -1,0 +1,69 @@
+name: Test Report
+description: Report a successful or partially completed CraftLedger Jobs test session.
+title: "[Test]: "
+labels: ["testing"]
+body:
+  - type: input
+    id: test-date
+    attributes:
+      label: Test date
+      placeholder: "2026-07-06"
+    validations:
+      required: true
+  - type: input
+    id: tester
+    attributes:
+      label: Tester name or Minecraft username
+      placeholder: "PlayerName"
+    validations:
+      required: true
+  - type: input
+    id: minecraft-version
+    attributes:
+      label: Minecraft version
+      placeholder: "1.20.1"
+    validations:
+      required: true
+  - type: input
+    id: forge-version
+    attributes:
+      label: Forge version
+      placeholder: "47.4.10"
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: CraftLedger Jobs version or commit
+      placeholder: "0.1.0-test3 or commit hash"
+    validations:
+      required: true
+  - type: textarea
+    id: completed
+    attributes:
+      label: What did you test?
+      description: List the checklist sections, commands, jobs, config options, or gameplay flows you completed.
+      placeholder: |
+        - Joined server without CraftLedger Jobs installed locally
+        - /balance, /pay, /shop, /sell commands
+        - Miner payouts from coal ore
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Result
+      description: Say whether the test passed, partially passed, or had issues. Link any separate bug reports.
+      placeholder: "Passed. Commands returned expected messages and balances persisted after reconnect."
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or evidence
+      description: Drag screenshots into this box, or describe where the evidence is stored.
+  - type: textarea
+    id: not-tested
+    attributes:
+      label: Not tested
+      description: List anything you skipped or could not test.
