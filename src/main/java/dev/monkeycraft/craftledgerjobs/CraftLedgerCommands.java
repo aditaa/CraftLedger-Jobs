@@ -425,10 +425,11 @@ public final class CraftLedgerCommands {
             return 0;
         }
         PlayerStore.JobProgress progress = ledger.players().jobProgress(player, normalized);
-        double required = progress.level() >= ledger.jobsConfig().maxJobLevel ? 0 : JobProgression.requiredXpForNextLevel(progress.level(), ledger.jobsConfig());
+        int effectiveLevel = JobProgression.effectiveLevel(progress.level(), ledger.jobsConfig());
+        double required = JobProgression.requiredXpForNextLevel(effectiveLevel, ledger.jobsConfig());
         String next = required <= 0 ? "max level" : String.format(Locale.ROOT, "%.1f/%.1f XP", progress.xp(), required);
-        player.sendSystemMessage(TextUtil.success(normalized + " progress: level " + progress.level() + ", " + next
-                + ", payout multiplier x" + String.format(Locale.ROOT, "%.2f", JobProgression.multiplier(progress.level(), ledger.jobsConfig()))));
+        player.sendSystemMessage(TextUtil.success(normalized + " progress: level " + effectiveLevel + ", " + next
+                + ", payout multiplier x" + String.format(Locale.ROOT, "%.2f", JobProgression.multiplier(effectiveLevel, ledger.jobsConfig()))));
         return 1;
     }
 

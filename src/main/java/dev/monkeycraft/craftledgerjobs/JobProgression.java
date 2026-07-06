@@ -5,19 +5,22 @@ public final class JobProgression {
     }
 
     public static double multiplier(int level, JobsConfig config) {
-        int safeLevel = Math.max(1, level);
+        int safeLevel = effectiveLevel(level, config);
         double multiplier = 1.0D + ((safeLevel - 1) * config.payoutMultiplierPerLevel);
         return Double.isFinite(multiplier) && multiplier > 0 ? multiplier : 1.0D;
     }
 
     public static double requiredXpForNextLevel(int level, JobsConfig config) {
-        int safeLevel = Math.max(1, level);
+        int safeLevel = effectiveLevel(level, config);
+        if (safeLevel >= Math.max(1, config.maxJobLevel)) {
+            return 0.0D;
+        }
         double required = config.baseJobXpRequired * Math.pow(config.jobXpGrowth, safeLevel - 1);
         return Double.isFinite(required) && required > 0 ? required : config.baseJobXpRequired;
     }
 
     public static Progress apply(int currentLevel, double currentXp, double gainedXp, JobsConfig config) {
-        int level = Math.max(1, currentLevel);
+        int level = effectiveLevel(currentLevel, config);
         double xp = Math.max(0.0D, Double.isFinite(currentXp) ? currentXp : 0.0D);
         double gained = Math.max(0.0D, Double.isFinite(gainedXp) ? gainedXp : 0.0D);
         int maxLevel = Math.max(1, config.maxJobLevel);
@@ -41,6 +44,10 @@ public final class JobProgression {
             xp = 0.0D;
         }
         return new Progress(level, xp, gained, leveled);
+    }
+
+    public static int effectiveLevel(int level, JobsConfig config) {
+        return Math.max(1, Math.min(Math.max(1, config.maxJobLevel), level));
     }
 
     public record Progress(int level, double xp, double gainedXp, boolean leveled) {

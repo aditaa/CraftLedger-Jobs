@@ -11,9 +11,11 @@ class JobProgressionTest {
     void multiplierScalesByLevel() {
         JobsConfig config = new JobsConfig();
         config.payoutMultiplierPerLevel = 0.10D;
+        config.maxJobLevel = 5;
 
         assertEquals(1.0D, JobProgression.multiplier(1, config));
         assertEquals(1.2D, JobProgression.multiplier(3, config));
+        assertEquals(1.4D, JobProgression.multiplier(99, config));
     }
 
     @Test
@@ -48,5 +50,14 @@ class JobProgressionTest {
         assertEquals(2, capped.level());
         assertEquals(0.0D, capped.xp());
         assertFalse(capped.leveled());
+    }
+
+    @Test
+    void requiredXpReturnsZeroAtOrAboveConfiguredMaxLevel() {
+        JobsConfig config = new JobsConfig();
+        config.maxJobLevel = 3;
+
+        assertEquals(0.0D, JobProgression.requiredXpForNextLevel(3, config));
+        assertEquals(0.0D, JobProgression.requiredXpForNextLevel(99, config));
     }
 }
