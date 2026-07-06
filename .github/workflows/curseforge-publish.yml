@@ -138,7 +138,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jar_path="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*.jar' ! -name '*-plain.jar' | head -n 1)"
+          jar_path="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*-all.jar' | head -n 1)"
           test -n "$jar_path"
           echo "path=$jar_path" >> "$GITHUB_OUTPUT"
 
