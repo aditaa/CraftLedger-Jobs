@@ -168,6 +168,8 @@ See [Multi-Version Release Scaffolding](docs/MULTIVERSION.md) before publishing 
 
 Release candidate jars for all scaffolded target profiles are built by the `Release Build` GitHub Actions workflow on `v*` tags or manual dispatch.
 
+CurseForge uploads are handled by a separate manual `CurseForge Publish` workflow after release validation is complete.
+
 For local WSL/Windows setup details, see [Development Environment](docs/DEVELOPMENT.md).
 
 ## Testing

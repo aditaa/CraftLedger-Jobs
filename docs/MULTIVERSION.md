@@ -98,3 +98,22 @@ The uploaded artifacts include:
 - the expanded `pack.mcmeta`
 
 If one target fails, the workflow still tries the rest of the matrix so maintainers can see which version lanes are ready and which need compatibility work.
+
+## CurseForge Publishing
+
+The `CurseForge Publish` workflow is manual only. It builds the selected target profile or every profile, runs the Forge dev-server smoke test, and uploads the resulting jar to CurseForge.
+
+Required GitHub configuration:
+
+- Repository variable `CURSEFORGE_PROJECT_ID`: the numeric CurseForge project ID.
+- Repository secret `CURSEFORGE_TOKEN`: a CurseForge API token for the project.
+- GitHub Actions environment `curseforge`: recommended with required reviewer approval.
+
+The workflow requires a `confirm` input of `publish` before any upload job can run. Do not run it until the target profile is release-certified and manual staging has passed.
+
+CurseForge files are uploaded one Minecraft/Forge target at a time with:
+
+- loader: `forge`
+- game version: the selected Minecraft profile
+- Java version: the target profile Java toolchain
+- release type: selected at workflow dispatch

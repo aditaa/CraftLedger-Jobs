@@ -1,0 +1,168 @@
+name: CurseForge Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Minecraft target profile to publish."
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - "all"
+          - "1.18.2"
+          - "1.19.2"
+          - "1.19.4"
+          - "1.20.1"
+          - "1.20.4"
+          - "1.20.6"
+          - "1.21.1"
+      version:
+        description: "Release version to show on CurseForge, for example 0.1.0."
+        required: true
+        type: string
+      release_type:
+        description: "CurseForge release type."
+        required: true
+        default: "beta"
+        type: choice
+        options:
+          - "alpha"
+          - "beta"
+          - "release"
+      changelog:
+        description: "Markdown changelog for the uploaded files."
+        required: true
+        type: string
+      confirm:
+        description: "Type publish to upload files to CurseForge."
+        required: true
+        type: string
+
+concurrency:
+  group: curseforge-publish-${{ github.ref }}-${{ inputs.profile }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare Publish Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+      - name: Require explicit confirmation
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.confirm }}" != "publish" ]; then
+            echo "Refusing to publish. Re-run with confirm set to: publish"
+            exit 1
+          fi
+
+      - name: Select target profiles
+        id: matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          all_profiles='[
+            {"profile":"1.18.2","minecraft":"1.18.2","forge":"40.3.12","java":"17"},
+            {"profile":"1.19.2","minecraft":"1.19.2","forge":"43.5.2","java":"17"},
+            {"profile":"1.19.4","minecraft":"1.19.4","forge":"45.4.0","java":"17"},
+            {"profile":"1.20.1","minecraft":"1.20.1","forge":"47.4.10","java":"17"},
+            {"profile":"1.20.4","minecraft":"1.20.4","forge":"49.2.7","java":"17"},
+            {"profile":"1.20.6","minecraft":"1.20.6","forge":"50.2.8","java":"21"},
+            {"profile":"1.21.1","minecraft":"1.21.1","forge":"52.1.14","java":"21"}
+          ]'
+
+          if [ "${{ inputs.profile }}" = "all" ]; then
+            matrix="$(jq -c --argjson profiles "$all_profiles" '{include: $profiles}' <<< '{}')"
+          else
+            matrix="$(jq -c --arg profile "${{ inputs.profile }}" --argjson profiles "$all_profiles" '{include: ($profiles | map(select(.profile == $profile)))}' <<< '{}')"
+          fi
+
+          if [ "$(jq '.include | length' <<< "$matrix")" -eq 0 ]; then
+            echo "No target profiles selected."
+            exit 1
+          fi
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish Minecraft ${{ matrix.minecraft }} / Forge ${{ matrix.forge }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: curseforge
+    needs:
+      - prepare
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validate CurseForge configuration
+        env:
+          CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CURSEFORGE_PROJECT_ID"
+          test -n "$CURSEFORGE_TOKEN"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build target jar
+        run: ./gradlew build -Pcraftledger_mc_target=${{ matrix.profile }} --console=plain --no-daemon
+
+      - name: Run Forge server smoke test
+        env:
+          CRAFTLEDGER_MC_TARGET: ${{ matrix.profile }}
+        run: bash scripts/ci/smoke-server.sh
+
+      - name: Locate release jar
+        id: jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_path="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*.jar' ! -name '*-plain.jar' | head -n 1)"
+          test -n "$jar_path"
+          echo "path=$jar_path" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to CurseForge
+        uses: Kira-NT/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          files: ${{ steps.jar.outputs.path }}
+          name: CraftLedger Jobs ${{ inputs.version }} for Minecraft ${{ matrix.minecraft }} (Forge ${{ matrix.forge }})
+          version: ${{ inputs.version }}-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
+          version-type: ${{ inputs.release_type }}
+          changelog: ${{ inputs.changelog }}
+          loaders: forge
+          game-versions: ${{ matrix.minecraft }}
+          java: ${{ matrix.java }}
+          retry-attempts: 2
+          retry-delay: 10000
+          fail-mode: fail
+
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: curseforge-smoke-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
+          path: tmp/ci/smoke-server.log
+          if-no-files-found: ignore
+          retention-days: 30
