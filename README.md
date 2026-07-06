@@ -188,7 +188,7 @@ Manual server testing is required before the first public release:
 - Economy, shop, sell, jobs, reload, and admin commands work.
 - Balances persist across restart.
 
-See [Testing](docs/TESTING.md) and [Release Checklist](docs/RELEASE_CHECKLIST.md).
+See [Testing](docs/TESTING.md), [Volunteer Testing Guide](docs/VOLUNTEER_TESTING.md), and [Release Checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Contributing
 

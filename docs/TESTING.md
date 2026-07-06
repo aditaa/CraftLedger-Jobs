@@ -2,6 +2,8 @@
 
 CraftLedger Jobs needs both automated checks and dedicated-server validation.
 
+For player-friendly volunteer instructions, see [Volunteer Testing Guide](VOLUNTEER_TESTING.md). That guide covers how testers join the server, what commands and gameplay flows to try, and how to report both bugs and successful test evidence.
+
 ## Automated Checks
 
 Run:

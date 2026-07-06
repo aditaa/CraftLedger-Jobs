@@ -11,6 +11,8 @@ CraftLedger Jobs is a server-side Forge mod for Minecraft 1.20.1.
 
 Players should not need CraftLedger Jobs installed in their client modpack.
 
+Volunteer testers who only have Minecraft clients should follow the [Volunteer Testing Guide](VOLUNTEER_TESTING.md). They can either join a hosted test server without installing CraftLedger Jobs locally, or install the jar in a local Forge client for singleplayer/integrated-server testing.
+
 ## Install
 
 1. Build the jar with `./gradlew build`.
