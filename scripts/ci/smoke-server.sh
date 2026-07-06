@@ -7,6 +7,7 @@ LOG_FILE="$LOG_DIR/smoke-server.log"
 TIMEOUT_SECONDS="${CRAFTLEDGER_SMOKE_TIMEOUT_SECONDS:-600}"
 FORGE_INSTALL_RETRIES="${CRAFTLEDGER_FORGE_INSTALL_RETRIES:-3}"
 MC_TARGET="${CRAFTLEDGER_MC_TARGET:-}"
+PROVIDED_JAR="${CRAFTLEDGER_SMOKE_JAR:-}"
 GRADLE_TARGET_ARGS=()
 TARGET_PROPERTIES="$ROOT/gradle.properties"
 
@@ -36,15 +37,19 @@ INSTALLER_URL="https://maven.minecraftforge.net/net/minecraftforge/forge/${MINEC
 
 cd "$ROOT"
 
-./gradlew build "${GRADLE_TARGET_ARGS[@]}" --console=plain --no-daemon
+if [[ -n "$PROVIDED_JAR" ]]; then
+  JAR_PATH="$PROVIDED_JAR"
+else
+  ./gradlew build "${GRADLE_TARGET_ARGS[@]}" --console=plain --no-daemon
 
-JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name "craftledger_jobs-mc${MINECRAFT_VERSION}-forge${FORGE_VERSION}-*.jar" ! -name '*-plain.jar' | head -n 1)"
-if [[ -z "$JAR_PATH" && -z "$MC_TARGET" ]]; then
-  JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name 'craftledger_jobs-*.jar' ! -name '*-plain.jar' | head -n 1)"
+  JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name "craftledger_jobs-mc${MINECRAFT_VERSION}-forge${FORGE_VERSION}-*.jar" ! -name '*-plain.jar' | head -n 1)"
+  if [[ -z "$JAR_PATH" && -z "$MC_TARGET" ]]; then
+    JAR_PATH="$(find "$ROOT/build/libs" -maxdepth 1 -name 'craftledger_jobs-*.jar' ! -name '*-plain.jar' | head -n 1)"
+  fi
 fi
 
-if [[ -z "$JAR_PATH" ]]; then
-  echo "Could not locate built CraftLedger Jobs jar for Minecraft ${MINECRAFT_VERSION} / Forge ${FORGE_VERSION}." >&2
+if [[ -z "$JAR_PATH" || ! -f "$JAR_PATH" ]]; then
+  echo "Could not locate CraftLedger Jobs jar for Minecraft ${MINECRAFT_VERSION} / Forge ${FORGE_VERSION}: ${JAR_PATH:-<empty>}" >&2
   exit 1
 fi
 
@@ -97,7 +102,7 @@ while (( SECONDS < deadline )); do
     grep -q 'CraftLedger Jobs loaded' "$LOG_FILE" && mod_loaded=1
 
     if (( server_ready == 1 && mod_loaded == 1 )); then
-      echo "Smoke test passed: Forge dev server booted and CraftLedger Jobs loaded."
+      echo "Smoke test passed: Forge server booted with $(basename "$JAR_PATH") and CraftLedger Jobs loaded."
       echo "Log: $LOG_FILE"
       exit 0
     fi
