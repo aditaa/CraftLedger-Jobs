@@ -111,16 +111,19 @@ jobs:
           set -euo pipefail
 
           jar_path="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*-all.jar' | head -n 1)"
-          test -n "$jar_path"
+          test -n "$jar_path" || { echo "Missing all jar for Minecraft ${{ matrix.minecraft }} / Forge ${{ matrix.forge }}"; find build/libs -maxdepth 1 -type f -print; exit 1; }
+          echo "Inspecting $jar_path"
+          unzip -l "$jar_path" | grep -E 'META-INF/mods.toml|pack.mcmeta'
 
           unzip -p "$jar_path" META-INF/mods.toml > /tmp/craftledger-mods.toml
-          grep -q 'modId="craftledger_jobs"' /tmp/craftledger-mods.toml
-          grep -q 'displayTest="IGNORE_SERVER_VERSION"' /tmp/craftledger-mods.toml
-          grep -q 'side="SERVER"' /tmp/craftledger-mods.toml
-          grep -Fq 'versionRange="${{ matrix.minecraft_range }}"' /tmp/craftledger-mods.toml
-          grep -Fq 'versionRange="${{ matrix.forge_range }}"' /tmp/craftledger-mods.toml
+          cat /tmp/craftledger-mods.toml
+          grep -q 'modId="craftledger_jobs"' /tmp/craftledger-mods.toml || { echo "mods.toml is missing the CraftLedger mod id"; exit 1; }
+          grep -q 'displayTest="IGNORE_SERVER_VERSION"' /tmp/craftledger-mods.toml || { echo "mods.toml is missing clientless server displayTest"; exit 1; }
+          grep -q 'side="SERVER"' /tmp/craftledger-mods.toml || { echo "mods.toml is missing server-side dependency markers"; exit 1; }
+          grep -Fq 'versionRange="${{ matrix.minecraft_range }}"' /tmp/craftledger-mods.toml || { echo "mods.toml is missing Minecraft range ${{ matrix.minecraft_range }}"; exit 1; }
+          grep -Fq 'versionRange="${{ matrix.forge_range }}"' /tmp/craftledger-mods.toml || { echo "mods.toml is missing Forge range ${{ matrix.forge_range }}"; exit 1; }
 
-          unzip -p "$jar_path" pack.mcmeta > /tmp/craftledger-pack.mcmeta
+          unzip -p "$jar_path" pack.mcmeta > /tmp/craftledger-pack.mcmeta || { echo "Jar is missing pack.mcmeta"; exit 1; }
 
           mkdir -p release-artifacts
           cp "$jar_path" release-artifacts/
