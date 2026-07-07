@@ -147,7 +147,9 @@ if (!minecraftTarget.isEmpty()) {
     sourceSets.main.resources { srcDir "${targetSourceRoot}/resources" }
 }
 
-jarJar.enable()
+configurations {
+    bundledRuntime
+}
 
 repositories {
     // Put repositories for dependencies here
@@ -168,7 +170,7 @@ dependencies {
     // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
     minecraft "net.minecraftforge:forge:${effectiveMinecraftVersion}-${effectiveForgeVersion}"
     implementation 'org.xerial:sqlite-jdbc:3.46.1.0'
-    jarJar(group: 'org.xerial', name: 'sqlite-jdbc', version: '[3.46.1.0,3.47.0.0)')
+    bundledRuntime 'org.xerial:sqlite-jdbc:3.46.1.0'
     testImplementation platform('org.junit:junit-bom:5.10.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
@@ -224,6 +226,30 @@ tasks.named('jar', Jar).configure {
 
     // ForgeGradle 6 exposes reobfJar for older targets, while newer targets may not.
     finalizedBy tasks.matching { it.name == 'reobfJar' }
+}
+
+tasks.register('bundledJar', Jar) {
+    group = 'build'
+    description = 'Builds the release jar with bundled runtime dependencies.'
+    archiveBaseName = tasks.named('jar', Jar).get().archiveBaseName
+    archiveVersion = tasks.named('jar', Jar).get().archiveVersion
+    archiveClassifier = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn tasks.named('jar')
+    dependsOn tasks.matching { it.name == 'reobfJar' }
+
+    from({ zipTree(tasks.named('jar', Jar).get().archiveFile.get().asFile) })
+    from({
+        configurations.bundledRuntime.collect { dependency ->
+            zipTree(dependency)
+        }
+    }) {
+        exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+    }
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('bundledJar')
 }
 
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing:
