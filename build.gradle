@@ -170,7 +170,9 @@ dependencies {
     // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
     minecraft "net.minecraftforge:forge:${effectiveMinecraftVersion}-${effectiveForgeVersion}"
     implementation 'org.xerial:sqlite-jdbc:3.46.1.0'
-    bundledRuntime 'org.xerial:sqlite-jdbc:3.46.1.0'
+    bundledRuntime('org.xerial:sqlite-jdbc:3.46.1.0') {
+        transitive = false
+    }
     testImplementation platform('org.junit:junit-bom:5.10.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
