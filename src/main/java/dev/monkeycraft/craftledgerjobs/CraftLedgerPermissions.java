@@ -1,7 +1,6 @@
 package dev.monkeycraft.craftledgerjobs;
 
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.server.permission.PermissionAPI;
 import net.minecraftforge.server.permission.events.PermissionGatherEvent;
@@ -50,7 +49,7 @@ public final class CraftLedgerPermissions {
                 name,
                 PermissionTypes.BOOLEAN,
                 (player, playerUuid, context) -> !requiresOp || player != null && player.hasPermissions(OP_LEVEL)
-        ).setInformation(Component.literal("CraftLedger " + name), Component.literal(description));
+        ).setInformation(TextUtil.text("CraftLedger " + name), TextUtil.text(description));
     }
 
     private static boolean has(CommandSourceStack source, PermissionNode<Boolean> node) {
