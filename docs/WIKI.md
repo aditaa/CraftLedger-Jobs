@@ -10,4 +10,4 @@ To publish or refresh the GitHub Wiki:
 4. Copy the Markdown files from `docs/wiki/` into the wiki clone.
 5. Commit and push the wiki repository.
 
-The wiki pages currently cover installation, commands, configuration, permissions, and troubleshooting.
+The wiki pages currently cover installation, commands, configuration, testing, volunteer beta testing, permissions, and troubleshooting.

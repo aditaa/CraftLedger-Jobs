@@ -34,8 +34,8 @@ body:
   - type: input
     id: mod-version
     attributes:
-      label: CraftLedger Jobs version or commit
-      placeholder: "0.1.0-test3 or commit hash"
+      label: CraftLedger Jobs beta jar name
+      placeholder: "craftledger-jobs-0.1.0-beta.1-forge-1.20.1.jar"
     validations:
       required: true
   - type: textarea
@@ -44,7 +44,8 @@ body:
       label: What did you test?
       description: List the checklist sections, commands, jobs, config options, or gameplay flows you completed.
       placeholder: |
-        - Joined server without CraftLedger Jobs installed locally
+        - Installed beta jar in a Forge client
+        - Created a fresh singleplayer test world
         - /balance, /pay, /shop, /sell commands
         - Miner payouts from coal ore
     validations:

@@ -7,6 +7,8 @@ CraftLedger Jobs is a server-side economy and jobs mod for Forge 1.20.1 servers.
 - [Installation](Installation)
 - [Commands](Commands)
 - [Configuration](Configuration)
+- [Testing](Testing)
+- [Volunteer Beta Testing](Volunteer-Beta-Testing)
 - [Permissions](Permissions)
 - [Troubleshooting](Troubleshooting)
 

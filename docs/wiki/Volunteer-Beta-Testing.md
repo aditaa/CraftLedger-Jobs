@@ -1,6 +1,6 @@
-# Volunteer Beta Testing Guide
+# Volunteer Beta Testing
 
-Thank you for helping test CraftLedger Jobs. This guide is for volunteer players testing a beta release in a normal Minecraft client.
+This page is for volunteer players testing a beta release in a normal Minecraft client.
 
 For beta testing, install the CraftLedger Jobs jar in your own Forge client, start a fresh singleplayer world, and run the tests below.
 
@@ -25,15 +25,6 @@ Use this if you already use CurseForge and just want the shortest path.
 
 If you get stuck before step 10, send a screenshot of where you got stuck and include the beta jar name you downloaded.
 
-## What You Need
-
-- Minecraft Java Edition.
-- Forge for the same Minecraft version as the beta release.
-- The CraftLedger Jobs beta jar for your Minecraft version.
-- A GitHub account if you will report results directly.
-
-CraftLedger Jobs is designed to be server-side for public servers, but local beta testing uses singleplayer because Minecraft runs an integrated server inside your client.
-
 ## Download the Beta Release
 
 1. Open the CraftLedger Jobs releases page:
@@ -44,11 +35,7 @@ CraftLedger Jobs is designed to be server-side for public servers, but local bet
 3. Do not download source code `.zip` or `.tar.gz` files for testing.
 4. Keep the jar file name available for your report.
 
-If there are multiple beta jars, choose the one that matches your Minecraft and Forge version. For example, a Minecraft `1.20.1` beta should be tested with a Forge `1.20.1` client.
-
 ## Install with the Vanilla Minecraft Launcher
-
-Use this path if you launch Minecraft through the normal Minecraft Launcher.
 
 1. Install Forge for the Minecraft version you are testing.
 2. Open the Minecraft Launcher.
@@ -68,8 +55,6 @@ Common Minecraft folder locations:
 
 ## Install with CurseForge
 
-Use this path if you manage Minecraft profiles with the CurseForge app.
-
 1. Open CurseForge.
 2. Create a new custom Minecraft profile.
 3. Select the Minecraft version that matches the beta jar.
@@ -81,35 +66,19 @@ Use this path if you manage Minecraft profiles with the CurseForge app.
 9. Launch the profile.
 10. From the main menu, open Mods and confirm CraftLedger Jobs appears in the mod list.
 
-Do not mix beta jars for one Minecraft version with a different Minecraft profile version.
-
 ## Start a Fresh Test World
 
 1. Start Minecraft with the Forge profile that has CraftLedger Jobs installed.
 2. Click Singleplayer.
 3. Click Create New World.
 4. Name the world something like `CraftLedger Beta Test`.
-5. Turn Allow Cheats on. This lets you test operator commands.
-6. Use Survival or Creative, depending on the test you are running.
-7. Create the world.
-8. After joining, run `/balance`.
+5. Turn Allow Cheats on.
+6. Create the world.
+7. After joining, run `/balance`.
 
 The mod is probably installed and running if `/balance`, `/jobs`, and `/shop list` appear in autocomplete and return CraftLedger Jobs messages.
 
-## Basic Test Rules
-
-- Test one thing at a time when possible.
-- Write down the exact command you ran.
-- Write down what you expected to happen.
-- Write down what actually happened.
-- Take screenshots of useful chat output.
-- Include your Minecraft version, Forge version, CraftLedger Jobs jar name, and test date in every report.
-
-For screenshots, press `F2` in Minecraft. Screenshots are saved in the client `screenshots` folder.
-
 ## Quick Smoke Test
-
-Run this first. If any step fails, report it.
 
 1. Start a fresh singleplayer world.
 2. Run `/balance`.
@@ -135,8 +104,6 @@ Expected result: every command returns a clear CraftLedger Jobs message and no c
 Expected result: your balance is shown, and balance top commands return a list or clear message.
 
 ### Shop and Sell
-
-Use default items unless the beta notes say the config changed.
 
 1. Run `/shop list`.
 2. Run `/shop sell`.
@@ -170,47 +137,12 @@ Expected result: job list, info, join, progress, and leave commands return clear
 
 ## Gameplay Reward Tests
 
-### Miner
+- Miner: join with `/job join miner`, break naturally generated ore, then check `/balance` and `/job progress miner`.
+- Farmer: join with `/job join farmer`, harvest fully grown crops, then check `/balance` and `/job progress farmer`.
+- Woodcutter: join with `/job join woodcutter`, break configured logs, then check `/balance` and `/job progress woodcutter`.
+- Hunter: join with `/job join hunter`, kill configured hostile mobs, then check `/balance` and `/job progress hunter`.
 
-1. Join miner with `/job join miner`.
-2. Record your balance with `/balance`.
-3. Break naturally generated coal ore, copper ore, iron ore, or another ore listed by `/job info miner`.
-4. Run `/balance` and `/job progress miner`.
-
-Expected result: balance and job progress increase.
-
-### Farmer
-
-1. Join farmer with `/job join farmer`.
-2. Harvest fully grown wheat, carrots, potatoes, beetroots, pumpkin, melon, sugar cane, cactus, or cocoa.
-3. Run `/balance` and `/job progress farmer`.
-
-Expected result: configured crop actions reward the farmer job.
-
-### Woodcutter
-
-1. Join woodcutter with `/job join woodcutter`.
-2. Break a configured log, such as oak, spruce, birch, jungle, acacia, dark oak, mangrove, cherry, crimson stem, or warped stem.
-3. Run `/balance` and `/job progress woodcutter`.
-
-Expected result: configured log actions reward the woodcutter job.
-
-### Hunter
-
-1. Join hunter with `/job join hunter`.
-2. Kill a configured hostile mob, such as zombie, skeleton, creeper, spider, enderman, witch, slime, drowned, husk, stray, or pillager.
-3. Run `/balance` and `/job progress hunter`.
-
-Expected result: configured mob kills reward the hunter job.
-
-### Placed Block Anti-Abuse
-
-1. Join woodcutter with `/job join woodcutter`.
-2. Place an oak log yourself.
-3. Break the oak log you just placed.
-4. Check whether you got a payout.
-
-Expected result: player-placed blocks should not pay job rewards when placed-block tracking is enabled.
+Expected result: configured job actions increase balance and job progress.
 
 ## Operator Command Tests
 
@@ -233,8 +165,6 @@ These work in a singleplayer world with cheats enabled.
 15. `/craftledger transactions tail player <your-player-name> 5`
 
 Expected result: valid admin commands succeed, invalid values are rejected, and balance/job changes appear in player-facing commands afterward.
-
-Do not run storage migration tests unless the beta notes specifically ask for it.
 
 ## Optional Config Tests
 
@@ -262,67 +192,14 @@ Useful settings to test:
 
 Expected result: valid config changes affect gameplay, invalid config changes produce a clear error, and the world does not crash.
 
-## Reporting Bugs
+## Reporting Results
 
-Open a GitHub bug report:
+Report bugs here:
 
 https://github.com/aditaa/CraftLedger-Jobs/issues/new?template=bug_report.yml
 
-Include:
-
-- Minecraft version.
-- Forge version.
-- CraftLedger Jobs beta jar name.
-- Test date.
-- Exact steps to reproduce.
-- What you expected.
-- What actually happened.
-- Screenshots, if the issue is visible in chat, UI, inventory, or disconnect screens.
-- Latest log if Minecraft produced an error.
-
-Good bug reports are specific. For example:
-
-```text
-Jar: craftledger-jobs-0.1.0-beta.1-forge-1.20.1.jar
-Command: /shop buy minecraft:bread 1
-Expected: receive 1 bread and lose 2 coins
-Actual: command said success, balance changed, but no bread appeared
-Screenshot: attached
-```
-
-## Reporting Successful Tests
-
-Successful tests are useful. They show that a beta worked in a real Minecraft client.
-
-Open a test report:
+Report successful or partially successful tests here:
 
 https://github.com/aditaa/CraftLedger-Jobs/issues/new?template=test_report.yml
 
-Include:
-
-- CraftLedger Jobs beta jar name.
-- Minecraft and Forge version.
-- Test date.
-- Tester name or Minecraft username.
-- Which checklist sections you completed.
-- Any commands that worked.
-- Any job actions that paid correctly.
-- Screenshots of successful command output, job payouts, shop buys/sells, and balance changes.
-- Anything you could not test.
-
-If everything worked, say that clearly. A clean successful test is important release evidence.
-
-## Screenshot Ideas
-
-Useful screenshots include:
-
-- Mods screen showing CraftLedger Jobs installed.
-- `/balance`.
-- `/shop price minecraft:bread` and `/shop buy minecraft:bread 1`.
-- `/sell hand 1` with the item visible in the hotbar.
-- `/jobs` and `/job current`.
-- A job payout message after mining, farming, chopping, or hunting.
-- `/job progress <job>` before and after a payout.
-- Any error, disconnect, or rejected command message.
-
-Do not post screenshots that reveal private server addresses, private chat, or sensitive player information.
+Include the beta jar name, Minecraft version, Forge version, test date, what you tested, screenshots, and anything you could not test.
