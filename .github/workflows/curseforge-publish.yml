@@ -139,7 +139,12 @@ jobs:
         run: |
           set -euo pipefail
           jar_path="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*-all.jar' | head -n 1)"
+          if [[ -z "$jar_path" ]]; then
+            jar_path="$(find build/libs -maxdepth 1 -name 'craftledger_jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}-*.jar' ! -name '*-plain.jar' | head -n 1)"
+          fi
           test -n "$jar_path"
+          unzip -l "$jar_path" > /tmp/craftledger-jar-entries.txt
+          grep -Eq 'org/sqlite/JDBC.class|META-INF/jarjar/' /tmp/craftledger-jar-entries.txt || { echo "Release jar is missing bundled SQLite support"; exit 1; }
           echo "path=$jar_path" >> "$GITHUB_OUTPUT"
 
       - name: Publish to CurseForge and GitHub Releases
