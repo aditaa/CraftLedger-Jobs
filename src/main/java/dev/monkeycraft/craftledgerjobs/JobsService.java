@@ -1,13 +1,16 @@
 package dev.monkeycraft.craftledgerjobs;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.level.BlockEvent;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Locale;
 
 public final class JobsService {
@@ -66,8 +69,8 @@ public final class JobsService {
         return info(jobId, 1);
     }
 
-    public void handleBlockBreak(BlockEvent.BreakEvent event) {
-        if (!(event.getPlayer() instanceof ServerPlayer player)) {
+    public void handleBlockBreak(Object event) {
+        if (!(invoke(event, "getPlayer") instanceof ServerPlayer player)) {
             return;
         }
         if (!ledger.jobsConfig().enabled) {
@@ -81,31 +84,39 @@ public final class JobsService {
         if (job == null) {
             return;
         }
-        ResourceLocation blockId = RegistryIds.blockId(event.getState().getBlock());
-        if (event.getState().getBlock() instanceof CropBlock crop && !crop.isMaxAge(event.getState())) {
+        if (!(invoke(event, "getState") instanceof BlockState state)) {
+            return;
+        }
+        ResourceLocation blockId = RegistryIds.blockId(state.getBlock());
+        if (state.getBlock() instanceof CropBlock crop && !crop.isMaxAge(state)) {
             return;
         }
         String detail = blockId.toString();
         Double currencyPayout = job.blockBreak.get(detail);
         Integer xpPayout = job.blockBreakXp.get(detail);
+        Object level = invoke(event, "getLevel", "getWorld");
+        Object pos = invoke(event, "getPos");
         if (hasConfiguredPayout(currencyPayout, xpPayout)
                 && ledger.jobsConfig().trackPlacedBlocks
-                && event.getLevel() instanceof ServerLevel level
-                && ledger.placedBlocks().consume(level, event.getPos())) {
+                && level instanceof ServerLevel serverLevel
+                && pos instanceof BlockPos blockPos
+                && ledger.placedBlocks().consume(serverLevel, blockPos)) {
             return;
         }
         pay(player, jobId, currencyPayout, xpPayout, "job_block_break", detail);
     }
 
-    public void handleBlockPlace(BlockEvent.EntityPlaceEvent event) {
+    public void handleBlockPlace(Object event) {
         if (!ledger.jobsConfig().enabled || !ledger.jobsConfig().trackPlacedBlocks) {
             return;
         }
-        if (!(event.getEntity() instanceof Player)) {
+        if (!(invoke(event, "getEntity", "getPlayer") instanceof Player)) {
             return;
         }
-        if (event.getLevel() instanceof ServerLevel level) {
-            ledger.placedBlocks().record(level, event.getPos(), ledger.jobsConfig().maxTrackedPlacedBlocks);
+        Object level = invoke(event, "getLevel", "getWorld");
+        Object pos = invoke(event, "getPos");
+        if (level instanceof ServerLevel serverLevel && pos instanceof BlockPos blockPos) {
+            ledger.placedBlocks().record(serverLevel, blockPos, ledger.jobsConfig().maxTrackedPlacedBlocks);
         }
     }
 
@@ -157,8 +168,22 @@ public final class JobsService {
         ledger.transactions().write(type, player, currency, detail + payoutDetail(currency, xp));
         PlayerStore.JobProgress progress = awardProgress(player, jobId, currency, xp);
         if (ledger.jobsConfig().notifyPayouts) {
-            player.sendSystemMessage(TextUtil.success(ledger.messages().format("job.payout", "payout", payoutMessage(currency, xp) + progressMessage(jobId, progress))));
+            TextUtil.send(player, TextUtil.success(ledger.messages().format("job.payout", "payout", payoutMessage(currency, xp) + progressMessage(jobId, progress))));
         }
+    }
+
+    private static Object invoke(Object target, String... methodNames) {
+        for (String methodName : methodNames) {
+            try {
+                Method method = target.getClass().getMethod(methodName);
+                return method.invoke(target);
+            } catch (NoSuchMethodException ignored) {
+                // Try the next method name used by another Minecraft/Forge generation.
+            } catch (IllegalAccessException | InvocationTargetException ex) {
+                throw new IllegalStateException("Failed to read event method " + methodName, ex);
+            }
+        }
+        return null;
     }
 
     private static boolean hasConfiguredPayout(Double currencyPayout, Integer xpPayout) {

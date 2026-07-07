@@ -29,4 +29,37 @@ public final class CommandFeedback {
             throw new IllegalStateException("Failed to send command feedback", ex);
         }
     }
+
+    public static void failure(CommandSourceStack source, Component message) {
+        try {
+            Method method = CommandSourceStack.class.getMethod("sendFailure", Component.class);
+            method.invoke(source, message);
+            return;
+        } catch (NoSuchMethodException ignored) {
+            // Fall through to generic command-source messaging for versions without sendFailure.
+        } catch (IllegalAccessException | InvocationTargetException ex) {
+            throw new IllegalStateException("Failed to send command feedback", ex);
+        }
+
+        message(source, message);
+    }
+
+    public static void message(CommandSourceStack source, Component message) {
+        try {
+            Method method = CommandSourceStack.class.getMethod("sendSystemMessage", Component.class);
+            method.invoke(source, message);
+            return;
+        } catch (NoSuchMethodException ignored) {
+            // Older command sources can still report through sendFailure.
+        } catch (IllegalAccessException | InvocationTargetException ex) {
+            throw new IllegalStateException("Failed to send command feedback", ex);
+        }
+
+        try {
+            Method method = CommandSourceStack.class.getMethod("sendFailure", Component.class);
+            method.invoke(source, message);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
+            throw new IllegalStateException("Failed to send command feedback", ex);
+        }
+    }
 }

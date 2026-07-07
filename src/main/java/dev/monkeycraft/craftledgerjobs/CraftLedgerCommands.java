@@ -223,16 +223,16 @@ public final class CraftLedgerCommands {
 
     private static int balance(ServerPlayer player, Ledger ledger) {
         if (!ledger.common().currencyEnabled()) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "currency.disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "currency.disabled")));
             return 0;
         }
-        player.sendSystemMessage(TextUtil.success(msg(ledger, "balance.self", "balance", ledger.common().format(ledger.players().balance(player)))));
+        TextUtil.send(player, TextUtil.success(msg(ledger, "balance.self", "balance", ledger.common().format(ledger.players().balance(player)))));
         return 1;
     }
 
     private static int balanceTop(CommandSourceStack source, int page, Ledger ledger) {
         if (!ledger.common().currencyEnabled()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "currency.disabled")));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "currency.disabled")));
             return 0;
         }
         CommandFeedback.success(source, TextUtil.success(BalanceViews.topBalances(ledger.players().topBalances(), ledger.common(), page)), false);
@@ -241,7 +241,7 @@ public final class CraftLedgerCommands {
 
     private static int balanceOther(CommandSourceStack source, ServerPlayer player, Ledger ledger) {
         if (!ledger.common().currencyEnabled()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "currency.disabled")));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "currency.disabled")));
             return 0;
         }
         CommandFeedback.success(source, TextUtil.success(msg(ledger, "balance.other", Map.of(
@@ -253,15 +253,15 @@ public final class CraftLedgerCommands {
 
     private static int pay(ServerPlayer source, ServerPlayer target, double amount, Ledger ledger) {
         if (!ledger.common().currencyEnabled()) {
-            source.sendSystemMessage(TextUtil.error(msg(ledger, "currency.disabled")));
+            TextUtil.send(source, TextUtil.error(msg(ledger, "currency.disabled")));
             return 0;
         }
         if (source.getUUID().equals(target.getUUID())) {
-            source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.self")));
+            TextUtil.send(source, TextUtil.error(msg(ledger, "pay.self")));
             return 0;
         }
         if (ledger.common().maxPayAmount() > 0 && amount > ledger.common().maxPayAmount()) {
-            source.sendSystemMessage(TextUtil.error("Payments are capped at " + ledger.common().format(ledger.common().maxPayAmount()) + "."));
+            TextUtil.send(source, TextUtil.error("Payments are capped at " + ledger.common().format(ledger.common().maxPayAmount()) + "."));
             return 0;
         }
         int cooldownSeconds = ledger.common().payCooldownSeconds();
@@ -270,21 +270,21 @@ public final class CraftLedgerCommands {
             Instant lastPayment = LAST_PAYMENTS.get(source.getUUID());
             if (lastPayment != null && Duration.between(lastPayment, now).getSeconds() < cooldownSeconds) {
                 long remaining = cooldownSeconds - Duration.between(lastPayment, now).getSeconds();
-                source.sendSystemMessage(TextUtil.error("Wait " + remaining + " second(s) before using /pay again."));
+                TextUtil.send(source, TextUtil.error("Wait " + remaining + " second(s) before using /pay again."));
                 return 0;
             }
         }
         if (!ledger.canDeposit(target, amount)) {
-            source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.target_full")));
+            TextUtil.send(source, TextUtil.error(msg(ledger, "pay.target_full")));
             return 0;
         }
         if (!ledger.players().withdraw(source, amount)) {
-            source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.insufficient")));
+            TextUtil.send(source, TextUtil.error(msg(ledger, "pay.insufficient")));
             return 0;
         }
         if (!ledger.deposit(target, amount)) {
             ledger.deposit(source, amount);
-            source.sendSystemMessage(TextUtil.error(msg(ledger, "pay.rollback_failed")));
+            TextUtil.send(source, TextUtil.error(msg(ledger, "pay.rollback_failed")));
             return 0;
         }
         if (cooldownSeconds > 0) {
@@ -292,12 +292,12 @@ public final class CraftLedgerCommands {
         }
         ledger.transactions().write("pay_send", source, amount, "to " + target.getGameProfile().getName());
         ledger.transactions().write("pay_receive", target, amount, "from " + source.getGameProfile().getName());
-        source.sendSystemMessage(TextUtil.success(msg(ledger, "pay.sent", Map.of(
+        TextUtil.send(source, TextUtil.success(msg(ledger, "pay.sent", Map.of(
                 "target", target.getGameProfile().getName(),
                 "amount", ledger.common().format(amount),
                 "balance", ledger.common().format(ledger.players().balance(source))
         ))));
-        target.sendSystemMessage(TextUtil.success(msg(ledger, "pay.received", Map.of(
+        TextUtil.send(target, TextUtil.success(msg(ledger, "pay.received", Map.of(
                 "source", source.getGameProfile().getName(),
                 "amount", ledger.common().format(amount),
                 "balance", ledger.common().format(ledger.players().balance(target))
@@ -306,13 +306,13 @@ public final class CraftLedgerCommands {
     }
 
     private static int sellHelp(ServerPlayer player) {
-        player.sendSystemMessage(TextUtil.success("Sell commands: /sell hand [amount], /sell all [item_id]"));
+        TextUtil.send(player, TextUtil.success("Sell commands: /sell hand [amount], /sell all [item_id]"));
         return 1;
     }
 
     private static int sellHand(ServerPlayer player, int amount, Ledger ledger) {
         ShopService.SellResult result = ledger.shop().sellHand(player, amount);
-        player.sendSystemMessage(result.success()
+        TextUtil.send(player, result.success()
                 ? TextUtil.success(msg(ledger, "sell.hand.success", Map.of("count", Integer.toString(result.itemCount()), "total", ledger.common().format(result.total()))))
                 : TextUtil.error(result.message()));
         return result.success() ? 1 : 0;
@@ -320,7 +320,7 @@ public final class CraftLedgerCommands {
 
     private static int sellAll(ServerPlayer player, String itemId, Ledger ledger) {
         ShopService.SellResult result = ledger.shop().sellAll(player, itemId);
-        player.sendSystemMessage(result.success()
+        TextUtil.send(player, result.success()
                 ? TextUtil.success(msg(ledger, "sell.all.success", Map.of(
                 "count", Integer.toString(result.itemCount()),
                 "total", ledger.common().format(result.total()),
@@ -331,33 +331,33 @@ public final class CraftLedgerCommands {
     }
 
     private static int shopHelp(ServerPlayer player) {
-        player.sendSystemMessage(TextUtil.success("Shop commands: /shop list [page], /shop sell [page], /shop price <item>, /shop buy <item> [amount]"));
+        TextUtil.send(player, TextUtil.success("Shop commands: /shop list [page], /shop sell [page], /shop price <item>, /shop buy <item> [amount]"));
         return 1;
     }
 
     private static int shopList(ServerPlayer player, int page, Ledger ledger) {
-        player.sendSystemMessage(TextUtil.success(ledger.shop().listBuy(ledger.common(), page)));
+        TextUtil.send(player, TextUtil.success(ledger.shop().listBuy(ledger.common(), page)));
         return 1;
     }
 
     private static int shopSellList(ServerPlayer player, int page, Ledger ledger) {
-        player.sendSystemMessage(TextUtil.success(ledger.shop().listSell(ledger.common(), page)));
+        TextUtil.send(player, TextUtil.success(ledger.shop().listSell(ledger.common(), page)));
         return 1;
     }
 
     private static int shopPrice(ServerPlayer player, String item, Ledger ledger) {
-        player.sendSystemMessage(TextUtil.success(ledger.shop().price(item, ledger.common())));
+        TextUtil.send(player, TextUtil.success(ledger.shop().price(item, ledger.common())));
         return 1;
     }
 
     private static int shopBuy(ServerPlayer player, String item, int amount, Ledger ledger) {
         ShopService.BuyResult result = ledger.shop().buy(player, item, amount);
         if (!result.success()) {
-            player.sendSystemMessage(TextUtil.error(result.message()));
+            TextUtil.send(player, TextUtil.error(result.message()));
             return 0;
         }
         String overflow = result.droppedItems() ? msg(ledger, "shop.buy.overflow") : "";
-        player.sendSystemMessage(TextUtil.success(msg(ledger, "shop.buy.success", Map.of(
+        TextUtil.send(player, TextUtil.success(msg(ledger, "shop.buy.success", Map.of(
                 "count", Integer.toString(result.amount()),
                 "item", item,
                 "total", ledger.common().format(result.total()),
@@ -368,43 +368,43 @@ public final class CraftLedgerCommands {
 
     private static int jobs(ServerPlayer player, int page, Ledger ledger) {
         String current = ledger.players().job(player);
-        player.sendSystemMessage(TextUtil.success(ledger.jobs().listJobs(current, page)));
+        TextUtil.send(player, TextUtil.success(ledger.jobs().listJobs(current, page)));
         return 1;
     }
 
     private static int jobJoin(ServerPlayer player, String job, Ledger ledger) {
         JobsService.JoinResult result = ledger.jobs().join(player, job);
         if (result == JobsService.JoinResult.JOBS_DISABLED) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "jobs.disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "jobs.disabled")));
             return 0;
         }
         if (result == JobsService.JoinResult.UNKNOWN_JOB) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "job.unknown", "job", job)));
             return 0;
         }
         if (result == JobsService.JoinResult.ALREADY_IN_JOB) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.already")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "job.already")));
             return 0;
         }
         if (result == JobsService.JoinResult.SWITCHING_DISABLED) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.switching_disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "job.switching_disabled")));
             return 0;
         }
-        player.sendSystemMessage(TextUtil.success(msg(ledger, "job.joined", "job", job.toLowerCase(Locale.ROOT))));
+        TextUtil.send(player, TextUtil.success(msg(ledger, "job.joined", "job", job.toLowerCase(Locale.ROOT))));
         return 1;
     }
 
     private static int jobCurrent(ServerPlayer player, Ledger ledger) {
         if (!ledger.jobsConfig().enabled) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "jobs.disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "jobs.disabled")));
             return 0;
         }
         String current = ledger.players().job(player);
         if (current == null) {
-            player.sendSystemMessage(TextUtil.success(msg(ledger, "job.current", "job", "none")));
+            TextUtil.send(player, TextUtil.success(msg(ledger, "job.current", "job", "none")));
         } else {
             PlayerStore.JobProgress progress = ledger.players().jobProgress(player, current);
-            player.sendSystemMessage(TextUtil.success(msg(ledger, "job.current", "job", current)
+            TextUtil.send(player, TextUtil.success(msg(ledger, "job.current", "job", current)
                     + " (level " + progress.level() + ", " + String.format(Locale.ROOT, "%.1f", progress.xp()) + " XP)"));
         }
         return 1;
@@ -412,40 +412,40 @@ public final class CraftLedgerCommands {
 
     private static int jobProgress(ServerPlayer player, String job, Ledger ledger) {
         if (!ledger.jobsConfig().enabled) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "jobs.disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "jobs.disabled")));
             return 0;
         }
         if (job == null || job.isBlank()) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.none")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "job.none")));
             return 0;
         }
         String normalized = job.toLowerCase(Locale.ROOT);
         if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "job.unknown", "job", job)));
             return 0;
         }
         PlayerStore.JobProgress progress = ledger.players().jobProgress(player, normalized);
         int effectiveLevel = JobProgression.effectiveLevel(progress.level(), ledger.jobsConfig());
         double required = JobProgression.requiredXpForNextLevel(effectiveLevel, ledger.jobsConfig());
         String next = required <= 0 ? "max level" : String.format(Locale.ROOT, "%.1f/%.1f XP", progress.xp(), required);
-        player.sendSystemMessage(TextUtil.success(normalized + " progress: level " + effectiveLevel + ", " + next
+        TextUtil.send(player, TextUtil.success(normalized + " progress: level " + effectiveLevel + ", " + next
                 + ", payout multiplier x" + String.format(Locale.ROOT, "%.2f", JobProgression.multiplier(effectiveLevel, ledger.jobsConfig()))));
         return 1;
     }
 
     private static int jobLeave(ServerPlayer player, Ledger ledger) {
         if (!ledger.jobsConfig().enabled) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "jobs.disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "jobs.disabled")));
             return 0;
         }
         ledger.jobs().leave(player);
-        player.sendSystemMessage(TextUtil.success(msg(ledger, "job.left")));
+        TextUtil.send(player, TextUtil.success(msg(ledger, "job.left")));
         return 1;
     }
 
     private static int jobInfo(ServerPlayer player, String job, Ledger ledger) {
         if (!ledger.jobsConfig().enabled) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "jobs.disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "jobs.disabled")));
             return 0;
         }
         return jobInfo(player, job, 1, ledger);
@@ -453,14 +453,14 @@ public final class CraftLedgerCommands {
 
     private static int jobInfo(ServerPlayer player, String job, int page, Ledger ledger) {
         if (!ledger.jobsConfig().enabled) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "jobs.disabled")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "jobs.disabled")));
             return 0;
         }
         if (job == null || job.isBlank()) {
-            player.sendSystemMessage(TextUtil.error(msg(ledger, "job.none")));
+            TextUtil.send(player, TextUtil.error(msg(ledger, "job.none")));
             return 0;
         }
-        player.sendSystemMessage(TextUtil.success(ledger.jobs().info(job, page)));
+        TextUtil.send(player, TextUtil.success(ledger.jobs().info(job, page)));
         return 1;
     }
 
@@ -470,7 +470,7 @@ public final class CraftLedgerCommands {
             CommandFeedback.success(source, TextUtil.success(msg(ledger, "admin.reload_success")), true);
             return 1;
         } catch (RuntimeException ex) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.reload_failed", "error", rootMessage(ex))));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.reload_failed", "error", rootMessage(ex))));
             CraftLedgerJobs.LOGGER.warn("CraftLedger reload failed", ex);
             return 0;
         }
@@ -478,12 +478,12 @@ public final class CraftLedgerCommands {
 
     private static int adminBalanceGet(CommandSourceStack source, String playerTarget, Ledger ledger) {
         if (!ledger.common().currencyEnabled()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "currency.disabled")));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "currency.disabled")));
             return 0;
         }
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
             return 0;
         }
         PlayerStore.KnownPlayer player = target.get();
@@ -496,12 +496,12 @@ public final class CraftLedgerCommands {
 
     private static int adminBalance(CommandSourceStack source, String playerTarget, double amount, String mode, Ledger ledger) {
         if (!ledger.common().currencyEnabled()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "currency.disabled")));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "currency.disabled")));
             return 0;
         }
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
             return 0;
         }
         return updateBalance(source, target.get(), amount, mode, ledger);
@@ -509,7 +509,7 @@ public final class CraftLedgerCommands {
 
     private static int adminBalance(CommandSourceStack source, ServerPlayer player, double amount, String mode, Ledger ledger) {
         if (!ledger.common().currencyEnabled()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "currency.disabled")));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "currency.disabled")));
             return 0;
         }
         return updateBalance(source, new PlayerStore.KnownPlayer(player.getUUID(), player.getGameProfile().getName()), amount, mode, ledger);
@@ -518,13 +518,13 @@ public final class CraftLedgerCommands {
     private static int updateBalance(CommandSourceStack source, PlayerStore.KnownPlayer player, double amount, String mode, Ledger ledger) {
         if ("set".equals(mode)) {
             if (!ledger.canSetBalance(amount)) {
-                source.sendFailure(TextUtil.error(ledger.maxBalanceMessage()));
+                CommandFeedback.failure(source, TextUtil.error(ledger.maxBalanceMessage()));
                 return 0;
             }
             ledger.players().set(player.uuid(), player.name(), amount);
         } else if ("add".equals(mode)) {
             if (!ledger.canAddBalance(player.uuid(), player.name(), amount)) {
-                source.sendFailure(TextUtil.error(ledger.maxBalanceMessage()));
+                CommandFeedback.failure(source, TextUtil.error(ledger.maxBalanceMessage()));
                 return 0;
             }
             ledger.players().add(player.uuid(), player.name(), amount);
@@ -542,7 +542,7 @@ public final class CraftLedgerCommands {
     private static int adminPlayerInfo(CommandSourceStack source, String playerTarget, Ledger ledger) {
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
             return 0;
         }
         PlayerStore.KnownPlayer player = target.get();
@@ -558,17 +558,17 @@ public final class CraftLedgerCommands {
 
     private static int adminJobSet(CommandSourceStack source, String playerTarget, String job, Ledger ledger) {
         if (!ledger.jobsConfig().enabled) {
-            source.sendFailure(TextUtil.error(msg(ledger, "jobs.disabled")));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "jobs.disabled")));
             return 0;
         }
         String normalized = job.toLowerCase(Locale.ROOT);
         if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
-            source.sendFailure(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "job.unknown", "job", job)));
             return 0;
         }
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
             return 0;
         }
         PlayerStore.KnownPlayer player = target.get();
@@ -581,7 +581,7 @@ public final class CraftLedgerCommands {
     private static int adminJobClear(CommandSourceStack source, String playerTarget, Ledger ledger) {
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
             return 0;
         }
         PlayerStore.KnownPlayer player = target.get();
@@ -594,12 +594,12 @@ public final class CraftLedgerCommands {
     private static int adminJobLevelSet(CommandSourceStack source, String playerTarget, String job, int level, Ledger ledger) {
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
             return 0;
         }
         String normalized = job.toLowerCase(Locale.ROOT);
         if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
-            source.sendFailure(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "job.unknown", "job", job)));
             return 0;
         }
         int clampedLevel = Math.min(Math.max(1, level), ledger.jobsConfig().maxJobLevel);
@@ -613,12 +613,12 @@ public final class CraftLedgerCommands {
     private static int adminJobLevelReset(CommandSourceStack source, String playerTarget, String job, Ledger ledger) {
         Optional<PlayerStore.KnownPlayer> target = resolveBalanceTarget(source, playerTarget, ledger);
         if (target.isEmpty()) {
-            source.sendFailure(TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "admin.unknown_player", "player", playerTarget)));
             return 0;
         }
         String normalized = job.toLowerCase(Locale.ROOT);
         if (!ledger.jobsConfig().jobs.containsKey(normalized)) {
-            source.sendFailure(TextUtil.error(msg(ledger, "job.unknown", "job", job)));
+            CommandFeedback.failure(source, TextUtil.error(msg(ledger, "job.unknown", "job", job)));
             return 0;
         }
         PlayerStore.KnownPlayer player = target.get();
@@ -635,7 +635,7 @@ public final class CraftLedgerCommands {
 
     private static int migrateJsonToSqlite(CommandSourceStack source, boolean dryRun, Ledger ledger) {
         if (!CommonConfig.STORAGE_JSON.equals(ledger.common().storageBackend())) {
-            source.sendFailure(TextUtil.error("JSON-to-SQLite migration can only run while storageBackend is \"json\"."));
+            CommandFeedback.failure(source, TextUtil.error("JSON-to-SQLite migration can only run while storageBackend is \"json\"."));
             return 0;
         }
         ledger.players().save();
@@ -648,7 +648,7 @@ public final class CraftLedgerCommands {
             CommandFeedback.success(source, TextUtil.success(result.summary()), true);
             return 1;
         } catch (IOException | RuntimeException ex) {
-            source.sendFailure(TextUtil.error("Storage migration failed: " + rootMessage(ex)));
+            CommandFeedback.failure(source, TextUtil.error("Storage migration failed: " + rootMessage(ex)));
             CraftLedgerJobs.LOGGER.warn("CraftLedger storage migration failed", ex);
             return 0;
         }
