@@ -251,7 +251,7 @@ tasks.named('test', Test).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
-    options.release = 17
+    options.release = effectiveJavaToolchainVersion as int
 }
 
 tasks.register('validateJarMetadata') {
