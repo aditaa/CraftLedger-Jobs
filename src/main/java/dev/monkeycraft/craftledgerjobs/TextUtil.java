@@ -52,12 +52,14 @@ public final class TextUtil {
     }
 
     public static Component text(String message) {
-        try {
-            return (Component) Component.class.getMethod("literal", String.class).invoke(null, message);
-        } catch (NoSuchMethodException ignored) {
-            // Minecraft 1.18 uses TextComponent instead of Component.literal(...).
-        } catch (IllegalAccessException | InvocationTargetException ex) {
-            throw new IllegalStateException("Failed to create text component", ex);
+        for (String methodName : new String[]{"literal", "m_237113_"}) {
+            try {
+                return (Component) Component.class.getMethod(methodName, String.class).invoke(null, message);
+            } catch (NoSuchMethodException ignored) {
+                // Try the next known runtime name.
+            } catch (IllegalAccessException | InvocationTargetException ex) {
+                throw new IllegalStateException("Failed to create text component", ex);
+            }
         }
 
         try {
