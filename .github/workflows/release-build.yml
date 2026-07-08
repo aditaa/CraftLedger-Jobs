@@ -196,7 +196,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Download target artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: craftledger-jobs-mc${{ matrix.minecraft }}-forge${{ matrix.forge }}
           path: tmp/ci/release-artifacts
